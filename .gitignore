@@ -1,0 +1,48 @@
+ProjectRoadmap.md
+
+# === Python / Django ===
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+db.sqlite3
+.env
+.env.*
+venv/
+.venv
+*.sqlite3
+
+# Django migration files (optional - include if you want clean history)
+**/migrations/*.py
+!**/migrations/__init__.py
+
+# === VS Code ===
+.vscode/
+.history/
+
+# === macOS ===
+.DS_Store
+
+# === React / Node (if frontend exists) ===
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.env
+frontend/.DS_Store
+
+# === Logs and other junk ===
+*.log
+*.pot
+*.mo
+*.swp
+*.swo
+*.bak
+*.tmp
+*.~ 
+
+# === Coverage / testing ===
+htmlcov/
+coverage.xml
+.tox/
+.nox/
+.pytest_cache/
