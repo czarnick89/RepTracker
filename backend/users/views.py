@@ -13,6 +13,8 @@ from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from rest_framework.views import exception_handler
+from rest_framework.throttling import ScopedRateThrottle
+from .throttles import LoginThrottle
 
 User = get_user_model()
 
@@ -53,6 +55,8 @@ class VerifyEmailView(APIView):
         return Response({"error": "Invalid or expired token"}, status=s.HTTP_400_BAD_REQUEST)
     
 class LoginView(APIView):
+    
+    throttle_classes = [LoginThrottle]
 
     def post(self, request):
         email = request.data.get("email")
