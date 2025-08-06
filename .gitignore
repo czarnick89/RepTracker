@@ -46,3 +46,6 @@ coverage.xml
 .tox/
 .nox/
 .pytest_cache/
+
+# Local SSL certificates
+*.pem

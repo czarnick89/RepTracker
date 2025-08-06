@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status as s
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from .serializers import UserRegisterSerializer, UserProfileSerializer
+from .serializers import UserRegisterSerializer, UserProfileSerializer, MyTokenObtainPairSerializer
 from django.core.mail import send_mail
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -15,7 +15,9 @@ from django.core.exceptions import ValidationError
 from rest_framework.throttling import ScopedRateThrottle
 from .throttles import LoginThrottle
 from django.shortcuts import redirect
-from django.http import HttpResponse
+from django.http import JsonResponse
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 User = get_user_model()
 
@@ -51,7 +53,7 @@ class VerifyEmailView(APIView):
             user = User.objects.get(pk=uid)
         except Exception as e:
             print(f"Error decoding or finding user: {e}")
-            return redirect("http://localhost:5173/?verified=invalid")
+            return redirect("http://localhost:5173/register/?verified=invalid")
 
         print(f"User before verification: {user}, is_active={user.is_active}")
         
@@ -59,33 +61,64 @@ class VerifyEmailView(APIView):
             user.is_active = True
             user.save()
             print(f"User after save: is_active={user.is_active}")
-            return redirect("http://localhost:5173/?verified=true")
+            return redirect("http://localhost:5173/login/?verified=true")
 
-        return redirect("http://localhost:5173/?verified=expired")
-    
-class LoginView(APIView):
-    
-    throttle_classes = [LoginThrottle]
+        return redirect("http://localhost:5173/login/?verified=expired") # need to change to resend verification?
 
-    def post(self, request):
-        email = request.data.get("email")
-        password = request.data.get("password")
+class MyTokenObtainPairView(TokenObtainPairView):  # login
+    serializer_class = MyTokenObtainPairSerializer
 
-        user = authenticate(request, username=email, password=password)
-        if user is not None:
-            if user.is_active:
-                token, created = Token.objects.get_or_create(user=user)
-                return Response({"token": token.key}, status=s.HTTP_200_OK)
-            else:
-                return Response({"error": "Account not verified."}, status=s.HTTP_403_FORBIDDEN)
-        return Response({"error": "Invalid credentials."}, status=s.HTTP_401_UNAUTHORIZED)
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        refresh = serializer.validated_data['refresh']
+        access = serializer.validated_data['access']
+
+        response = Response({"detail": "Login successful"}, status=s.HTTP_200_OK)
+
+        # Set HttpOnly access token cookie
+        response.set_cookie(
+            key='access_token',
+            value=access,
+            httponly=True,
+            secure=True,        # <-- must be True for HTTPS
+            samesite='None',    # <-- None is required for cross-site cookies with Secure flag
+            max_age=15 * 60,
+            path='/',
+        )
+
+        response.set_cookie(
+            key='refresh_token',
+            value=refresh,
+            httponly=True,
+            secure=True,        # <-- must be True for HTTPS
+            samesite='None',    # <-- None required for cross-site with Secure
+            max_age=24 * 60 * 60,
+            path='/api/v1/users/token/refresh/',
+        )
+
+        return response
     
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        request.user.auth_token.delete()  # deletes the token
-        return Response({"detail": "Logged out successfully."}, status=s.HTTP_200_OK)
+        refresh_token = request.COOKIES.get("refresh_token")
+
+        if refresh_token:
+            try:
+                # Attempt to blacklist the refresh token
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except Exception:
+                pass  # Could log this if needed, but don't expose to client
+
+        # Clear the cookies from client
+        response = Response({"detail": "Logged out successfully."}, status=s.HTTP_200_OK)
+        response.delete_cookie("access_token", path='/')
+        response.delete_cookie("refresh_token", path='/api/token/refresh/')
+        return response
     
 class PasswordResetRequestView(APIView):
 
@@ -212,3 +245,50 @@ class ResendVerificationEmailView(APIView):
         )
 
         return Response({"detail": "Verification email resent. Check your inbox."}, status=s.HTTP_200_OK)
+    
+class CookieTokenRefreshView(TokenRefreshView):
+
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh_token')
+
+        if refresh_token is None:
+            return Response({"error": "No refresh token cookie found."}, status=s.HTTP_401_UNAUTHORIZED)
+
+        data = {'refresh': refresh_token}
+        serializer = self.get_serializer(data=data)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception:
+            return Response({"error": "Invalid refresh token."}, status=s.HTTP_401_UNAUTHORIZED)
+
+        access_token = serializer.validated_data['access']
+        new_refresh_token = serializer.validated_data.get('refresh', None)  # may be present if rotation enabled
+
+        response = Response({"detail": "Token refreshed successfully."}, status=s.HTTP_200_OK)
+
+        # Set new access token cookie
+        response.set_cookie(
+            key='access_token',
+            value=access_token,
+            httponly=True,
+            secure=False,  # Change to True in production with HTTPS
+            samesite='None',  # Allow cross-site cookie for frontend CORS
+            max_age=15 * 60,  # 15 minutes
+            path='/',
+        )
+
+        # Rotate refresh token cookie if provided
+        if new_refresh_token:
+            response.set_cookie(
+                key='refresh_token',
+                value=new_refresh_token,
+                httponly=True,
+                secure=False,  # Change to True in production with HTTPS
+                samesite='None',
+                max_age=24 * 60 * 60,  # 1 day
+                path='/api/token/refresh/',
+            )
+
+        return response
+
