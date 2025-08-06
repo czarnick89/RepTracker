@@ -1,26 +1,28 @@
 import { useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const response = await axios.post("http://127.0.0.1:8000/api/v1/users/login/", {
-        email,
-        password,
-      });
+      const response = await axios.post(
+        "https://127.0.0.1:8000/api/v1/users/login/",
+        {email, password},
+        {withCredentials: true}
+      );
 
-      console.log("Login successful:", response.data);
+      // console.log("Login successful:", response.data);
 
-      localStorage.setItem("access", response.data.access);
-      localStorage.setItem("refresh", response.data.refresh);
+      navigate("/dashboard");
     } catch (err) {
       console.error("Login failed:", err.response?.data || err.message);
       setError("Login failed. Check your email and password.");
@@ -52,14 +54,27 @@ export default function Login() {
             style={{ width: "100%", padding: "0.5rem" }}
           />
         </div>
-        <button type="submit" style={{ padding: "0.5rem 1rem", marginBottom: "1rem" }}>
+        <button
+          type="submit"
+          style={{ padding: "0.5rem 1rem", marginBottom: "1rem" }}
+        >
           Log In
         </button>
 
-        <p style={{ marginBottom: "0.5rem", textAlign: "center", cursor: "pointer", color: "blue" }}>
+        <p
+          style={{
+            marginBottom: "0.5rem",
+            textAlign: "center",
+            cursor: "pointer",
+            color: "blue",
+          }}
+        >
           Forgot Password?
         </p>
-        <Link to="/register" style={{ textAlign: "center", cursor: "pointer", color: "blue" }}>
+        <Link
+          to="/register"
+          style={{ textAlign: "center", cursor: "pointer", color: "blue" }}
+        >
           Create Account
         </Link>
       </form>
