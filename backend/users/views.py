@@ -12,9 +12,10 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from rest_framework.views import exception_handler
 from rest_framework.throttling import ScopedRateThrottle
 from .throttles import LoginThrottle
+from django.shortcuts import redirect
+from django.http import HttpResponse
 
 User = get_user_model()
 
@@ -28,7 +29,7 @@ class RegisterView(APIView):
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             domain = get_current_site(request).domain
-            link = f"http://{domain}/verify-email/{uid}/{token}/"
+            link = f"http://{domain}/api/v1/users/verify-email/{uid}/{token}/"
             send_mail(
                 subject="Verify your email",
                 message=f"Click the link to verify your account: {link}",
@@ -42,17 +43,25 @@ class RegisterView(APIView):
 class VerifyEmailView(APIView):
     
     def get(self, request, uidb64, token):
+        print(f"UID64: {uidb64}")
+        print(f"Token: {token}")
         try:
             uid = urlsafe_base64_decode(uidb64).decode()
+            print(f"Decoded UID: {uid}")
             user = User.objects.get(pk=uid)
-        except (User.DoesNotExist, ValueError, TypeError, OverflowError):
-            return Response({"error": "Invalid link"}, status=s.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"Error decoding or finding user: {e}")
+            return redirect("http://localhost:5173/?verified=invalid")
 
+        print(f"User before verification: {user}, is_active={user.is_active}")
+        
         if default_token_generator.check_token(user, token):
             user.is_active = True
             user.save()
-            return Response({"detail": "Email verified. You can now log in."}, status=s.HTTP_200_OK)
-        return Response({"error": "Invalid or expired token"}, status=s.HTTP_400_BAD_REQUEST)
+            print(f"User after save: is_active={user.is_active}")
+            return redirect("http://localhost:5173/?verified=true")
+
+        return redirect("http://localhost:5173/?verified=expired")
     
 class LoginView(APIView):
     
@@ -172,3 +181,34 @@ class UserProfileView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=s.HTTP_400_BAD_REQUEST)
     
+class ResendVerificationEmailView(APIView):
+    def post(self, request):
+        email = request.data.get("email", "").strip()
+        if not email:
+            return Response({"email": "Email is required."}, status=s.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response({"email": "User with this email does not exist."}, status=s.HTTP_404_NOT_FOUND)
+
+        if user.is_active:
+            return Response({"detail": "This account is already verified."}, status=s.HTTP_400_BAD_REQUEST)
+
+        # Generate token and send email again
+        from django.contrib.auth.tokens import default_token_generator
+
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        domain = get_current_site(request).domain
+        link = f"http://{domain}/api/v1/users/verify-email/{uid}/{token}/"
+
+        send_mail(
+            subject="Verify your email",
+            message=f"Click the link to verify your account: {link}",
+            from_email="noreply@reptrack.com",
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        return Response({"detail": "Verification email resent. Check your inbox."}, status=s.HTTP_200_OK)

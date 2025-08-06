@@ -133,6 +133,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite dev server default
+    "http://127.0.0.1:5173"
 ]
 
 AUTH_USER_MODEL = 'users.User'
@@ -156,3 +157,5 @@ AUTHENTICATION_BACKENDS = [
     'users.backends.CaseInsensitiveEmailBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
