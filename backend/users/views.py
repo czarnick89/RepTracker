@@ -117,7 +117,7 @@ class LogoutView(APIView):
         # Clear the cookies from client
         response = Response({"detail": "Logged out successfully."}, status=s.HTTP_200_OK)
         response.delete_cookie("access_token", path='/')
-        response.delete_cookie("refresh_token", path='/api/token/refresh/')
+        response.delete_cookie("refresh_token", path='/api/v1/users/token/refresh/')
         return response
     
 class PasswordResetRequestView(APIView):
@@ -204,6 +204,7 @@ class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        print(f"Profile requested by: {request.user}")
         serializer = UserProfileSerializer(request.user)
         return Response(serializer.data)
 

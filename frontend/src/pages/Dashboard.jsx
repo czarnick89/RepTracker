@@ -1,26 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
-export default function DashboardPage() {
+export default function Dashboard() {
   const navigate = useNavigate();
+  const { setUser } = useAuth(); // Get setUser from context
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch("https://127.0.0.1:8000/api/v1/users/logout/", {
-        method: "POST",
-        credentials: "include", // Send cookies
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        navigate("/"); // Go back to landing page
-      } else {
-        console.error("Logout failed");
-      }
-    } catch (error) {
-      console.error("Error during logout:", error);
-    }
+  const handleLogout = () => {
+    navigate("/logout");
   };
 
   return (
