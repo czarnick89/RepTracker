@@ -1,4 +1,4 @@
-export default function LandingPage() {
+export default function Landing() {
   return (
     <div className="p-10 text-center">
       <h1 className="text-4xl font-bold mb-4">Welcome to RepTrack</h1>
