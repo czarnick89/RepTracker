@@ -55,75 +55,94 @@ export default function Register() {
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "2rem auto" }}>
-      <h2>RepTrack Register</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+  <div className="bg-slate-900 min-h-screen flex items-center justify-center px-4">
+    <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+      <h2 className="text-2xl font-bold mb-6 text-center text-slate-800">
+        RepTrack Register
+      </h2>
+
+      {error && (
+        <p className="text-red-600 text-sm mb-4 text-center">{error}</p>
+      )}
 
       {registered ? (
         <>
-          <p style={{ color: "green" }}>
+          <p className="text-green-600 text-sm mb-4 text-center">
             Registration successful! Check your email to verify your account before logging in.
           </p>
-          <p style={{ marginTop: "1rem", textAlign: "center" }}>
-            <Link to="/" style={{ color: "blue", cursor: "pointer" }}>
+          <p className="text-center">
+            <Link to="/login" className="text-blue-600 hover:underline">
               Go to Login
             </Link>
           </p>
         </>
       ) : (
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: "1rem" }}>
-            <label>Email:</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+              Email
+            </label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{ width: "100%", padding: "0.5rem" }}
+              className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <div style={{ marginBottom: "1rem" }}>
-            <label>Password:</label>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+              Password
+            </label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{ width: "100%", padding: "0.5rem" }}
+              className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {password && password.length < 8 && (
-              <p
-                style={{
-                  color: "orange",
-                  fontSize: "0.875rem",
-                  marginTop: "0.25rem",
-                }}
-              >
+              <p className="text-orange-500 text-sm mt-1">
                 Password must be at least 8 characters.
               </p>
             )}
           </div>
-          <div style={{ marginBottom: "1rem" }}>
-            <label>Confirm Password:</label>
+
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700">
+              Confirm Password
+            </label>
             <input
+              id="confirmPassword"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              style={{ width: "100%", padding: "0.5rem" }}
+              className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <button type="submit" style={{ padding: "0.5rem 1rem" }}>
+
+          <button
+            type="submit"
+            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+          >
             Register
           </button>
-          <p style={{ marginTop: "1rem", textAlign: "center" }}>
-            Already have an account?{" "}
-            <Link to="/" style={{ color: "blue", cursor: "pointer" }}>
-              Log in here
-            </Link>
-          </p>
         </form>
       )}
+
+      <div className="mt-4 text-sm text-center">
+        Already have an account?{" "}
+        <Link to="/login" className="text-blue-600 hover:underline">
+          Log in here
+        </Link>
+      </div>
     </div>
-  );
+  </div>
+);
+
+
 }
