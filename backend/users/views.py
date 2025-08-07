@@ -31,7 +31,7 @@ class RegisterView(APIView):
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             domain = get_current_site(request).domain
-            link = f"http://{domain}/api/v1/users/verify-email/{uid}/{token}/"
+            link = f"https://{domain}/api/v1/users/verify-email/{uid}/{token}/"
             send_mail(
                 subject="Verify your email",
                 message=f"Click the link to verify your account: {link}",
@@ -53,7 +53,7 @@ class VerifyEmailView(APIView):
             user = User.objects.get(pk=uid)
         except Exception as e:
             print(f"Error decoding or finding user: {e}")
-            return redirect("http://localhost:5173/register/?verified=invalid")
+            return redirect("https://localhost:5173/register/?verified=invalid")
 
         print(f"User before verification: {user}, is_active={user.is_active}")
         
@@ -61,9 +61,9 @@ class VerifyEmailView(APIView):
             user.is_active = True
             user.save()
             print(f"User after save: is_active={user.is_active}")
-            return redirect("http://localhost:5173/login/?verified=true")
+            return redirect("https://localhost:5173/login/?verified=true")
 
-        return redirect("http://localhost:5173/login/?verified=expired") # need to change to resend verification?
+        return redirect("https://localhost:5173/login/?verified=expired") # need to change to resend verification?
 
 class MyTokenObtainPairView(TokenObtainPairView):  # login
     serializer_class = MyTokenObtainPairSerializer
@@ -137,7 +137,7 @@ class PasswordResetRequestView(APIView):
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
-        reset_link = f"http://localhost:5173/reset-password/{uid}/{token}/"  # Frontend link
+        reset_link = f"https://localhost:5173/reset-password/{uid}/{token}/"  # Frontend link
 
         send_mail(
             subject="Reset your RepTrack password",
@@ -235,7 +235,7 @@ class ResendVerificationEmailView(APIView):
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         domain = get_current_site(request).domain
-        link = f"http://{domain}/api/v1/users/verify-email/{uid}/{token}/"
+        link = f"https://{domain}/api/v1/users/verify-email/{uid}/{token}/"
 
         send_mail(
             subject="Verify your email",

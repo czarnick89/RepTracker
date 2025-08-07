@@ -30,20 +30,28 @@ export default function Profile() {
   if (!profile) return <p>Loading profile...</p>;
 
   return (
-    <div className="p-4 rounded bg-gray-100 shadow">
-      <h2 className="text-xl font-bold mb-2">User Profile</h2>
-      <p>
-        <strong>Username:</strong> {profile.username}
-      </p>
-      <p>
-        <strong>Email:</strong> {profile.email}
-      </p>
-      <button
-        onClick={() => (window.location.href = "/logout")}
-        className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-      >
-        Logout
-      </button>
+    <div className="bg-slate-900 min-h-screen flex items-center justify-center px-4">
+      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-6 text-center text-slate-800">
+          User Profile
+        </h2>
+
+        <div className="space-y-3 text-slate-700">
+          <p>
+            <span className="font-semibold">Username:</span> {profile.username}
+          </p>
+          <p>
+            <span className="font-semibold">Email:</span> {profile.email}
+          </p>
+        </div>
+
+        <button
+          onClick={() => (window.location.href = "/logout")}
+          className="mt-6 w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition"
+        >
+          Logout
+        </button>
+      </div>
     </div>
   );
 }

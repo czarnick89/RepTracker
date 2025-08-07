@@ -24,33 +24,26 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Step 1: Login
       await axios.post(
         "https://127.0.0.1:8000/api/v1/users/login/",
         { email, password },
         { withCredentials: true }
       );
 
-      // Step 2: Fetch user profile
       const res = await axios.get(
         "https://127.0.0.1:8000/api/v1/users/profile/",
         { withCredentials: true }
       );
 
-      // Step 3: Set user in AuthContext
       setUser(res.data);
-
-      // Step 4: Redirect to intended page or dashboard
       const from = location.state?.from?.pathname || "/dashboard";
       navigate(from, { replace: true });
     } catch (err) {
       console.error("Login failed:", err.response?.data || err.message);
-
       const backendMsg =
         err.response?.data?.detail ||
         err.response?.data?.message ||
         "Login failed. Check your email and password.";
-
       setError(backendMsg);
     } finally {
       setLoading(false);
@@ -58,71 +51,65 @@ export default function Login() {
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "2rem auto" }}>
-      <h2>RepTrack Login</h2>
+    <div className="bg-slate-900 min-h-screen flex items-center justify-center px-4">
+      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-6 text-center text-slate-800">
+          RepTrack Login
+        </h2>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && (
+          <p className="text-red-600 text-sm mb-4 text-center">{error}</p>
+        )}
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: "1rem" }}>
-          <label htmlFor="email">Email:</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: "100%", padding: "0.5rem" }}
-          />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition ${
+              loading ? "opacity-60 cursor-not-allowed" : ""
+            }`}
+          >
+            {loading ? "Logging in..." : "Log In"}
+          </button>
+        </form>
+
+        <div className="mt-4 text-sm text-center">
+          <Link to="/forgot-password" className="text-blue-600 hover:underline block mb-2">
+            Forgot Password?
+          </Link>
+          <Link to="/register" className="text-blue-600 hover:underline">
+            Create Account
+          </Link>
         </div>
-
-        <div style={{ marginBottom: "1rem" }}>
-          <label htmlFor="password">Password:</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: "100%", padding: "0.5rem" }}
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: "0.5rem 1rem",
-            marginBottom: "1rem",
-            opacity: loading ? 0.6 : 1,
-            cursor: loading ? "not-allowed" : "pointer",
-          }}
-        >
-          {loading ? "Logging in..." : "Log In"}
-        </button>
-      </form>
-
-      <p
-        style={{
-          marginBottom: "0.5rem",
-          textAlign: "center",
-          cursor: "pointer",
-          color: "blue",
-        }}
-      >
-        Forgot Password?
-      </p>
-
-      <Link
-        to="/register"
-        style={{
-          textAlign: "center",
-          display: "block",
-          color: "blue",
-        }}
-      >
-        Create Account
-      </Link>
+      </div>
     </div>
   );
 }
