@@ -3,6 +3,9 @@ from rest_framework.exceptions import PermissionDenied
 from .models import Set, Exercise, Workout, TemplateSet, TemplateExercise, TemplateWorkout
 from .serializers import SetSerializer, ExerciseSerializer, WorkoutSerializer, TemplateSetSerializer, TemplateExerciseSerializer, TemplateWorkoutSerializer
 from rest_framework.generics import get_object_or_404
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.db.models import Prefetch
 
 # Create your views here.
 class SetViewSet(viewsets.ModelViewSet):
@@ -21,10 +24,26 @@ class WorkoutViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Workout.objects.filter(user=self.request.user)
+        return (
+            Workout.objects
+            .filter(user=self.request.user)
+            .order_by('-date', '-workout_number')  # newest first
+            .prefetch_related(
+                Prefetch(
+                    'exercises',
+                    queryset=Exercise.objects.prefetch_related('sets')
+                )
+            )
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def recent(self, request):
+        workouts = self.get_queryset()[:10]
+        serializer = self.get_serializer(workouts, many=True)
+        return Response(serializer.data)
 
 class TemplateSetViewSet(viewsets.ModelViewSet):
     queryset = TemplateSet.objects.all()

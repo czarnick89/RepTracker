@@ -36,6 +36,12 @@ class SetSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         validated_data.pop('exercise', None)
         return super().update(instance, validated_data)
+    
+    def validate_weight(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Weight must be zero or positive.")
+        return value
+
 
 class ExerciseSerializer(serializers.ModelSerializer):
     sets = SetSerializer(many=True, read_only=True)
