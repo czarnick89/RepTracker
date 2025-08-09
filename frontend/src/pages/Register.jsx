@@ -1,5 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
+// import axios from "axios";
+import api from '../api/axiosRefreshInterceptor';
 import { Link } from "react-router-dom";
 
 export default function Register() {
@@ -21,7 +22,7 @@ export default function Register() {
     }
 
     try {
-      const response = await axios.post(
+      const response = await api.post(
         "https://localhost:8000/api/v1/users/register/",
         {
           email,

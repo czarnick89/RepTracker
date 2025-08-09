@@ -1,7 +1,13 @@
 import React, { useState, useRef } from "react";
-import axios from "axios";
+// import axios from "axios";
+import api from "../api/axiosRefreshInterceptor";
 
-export default function ExerciseCard({ exercise, onExerciseNameSave }) {
+export default function ExerciseCard({
+  exercise,
+  onExerciseNameSave,
+  onDelete,
+  showDeleteButton,
+}) {
   const [exerciseName, setExerciseName] = useState(exercise.name);
   // For sets, keep track of reps and weight locally too:
   const [sets, setSets] = useState(exercise.sets);
@@ -31,7 +37,7 @@ export default function ExerciseCard({ exercise, onExerciseNameSave }) {
     }
 
     // Existing PATCH logic for existing exercises
-    axios
+    api
       .patch(
         `https://127.0.0.1:8000/api/v1/workouts/exercises/${exercise.id}/`,
         { name: exerciseName },
@@ -44,7 +50,7 @@ export default function ExerciseCard({ exercise, onExerciseNameSave }) {
   const updateSet = (setId, newReps, newWeight) => {
     if (setId < 0) return; // don't PATCH sets that haven't been created yet
 
-    axios
+    api
       .patch(
         `https://127.0.0.1:8000/api/v1/workouts/sets/${setId}/`,
         { reps: Number(newReps), weight: normalizeWeight(newWeight) },
@@ -55,7 +61,7 @@ export default function ExerciseCard({ exercise, onExerciseNameSave }) {
 
   // POST create new set in backend
   const createNewSet = (reps, weight) => {
-    return axios
+    return api
       .post(
         `https://127.0.0.1:8000/api/v1/workouts/sets/`,
         {
@@ -80,7 +86,7 @@ export default function ExerciseCard({ exercise, onExerciseNameSave }) {
       return;
     }
 
-    axios
+    api
       .delete(`https://127.0.0.1:8000/api/v1/workouts/sets/${setId}/`, {
         withCredentials: true,
       })
@@ -156,13 +162,25 @@ export default function ExerciseCard({ exercise, onExerciseNameSave }) {
   return (
     <div className="bg-gray-800 rounded-md p-4 m-2 flex-grow min-w-[180px] max-w-[300px] border border-gray-600">
       {/* Editable exercise name */}
-      <input
-        type="text"
-        value={exerciseName}
-        onChange={(e) => setExerciseName(e.target.value)}
-        onBlur={updateExerciseName}
-        className="mb-4 w-full bg-gray-700 text-white font-semibold text-center rounded px-2 py-1"
-      />
+      <div className="flex items-center space-x-2 mb-4">
+        <input
+          type="text"
+          value={exerciseName}
+          onChange={(e) => setExerciseName(e.target.value)}
+          onBlur={updateExerciseName}
+          className="flex-grow bg-gray-700 text-white font-semibold text-center rounded px-2 py-1"
+        />
+        {showDeleteButton && (
+          <button
+            onClick={onDelete}
+            className="text-red-600 hover:text-red-800 font-bold px-3 py-1 rounded"
+            aria-label={`Delete exercise ${exerciseName}`}
+            type="button"
+          >
+            🗑️
+          </button>
+        )}
+      </div>
 
       <div className="flex flex-col items-center space-y-1 font-mono text-lg w-full">
         {sets.map((set) => (
@@ -216,17 +234,19 @@ export default function ExerciseCard({ exercise, onExerciseNameSave }) {
             <span>LBS</span>
 
             {/* Delete button */}
-            <button
-              type="button"
-              onClick={() => {
-                setSetToDelete(set);
-                setShowDeleteModal(true);
-              }}
-              className="text-red-500 hover:text-red-700 px-2"
-              aria-label="Delete set"
-            >
-              🗑️
-            </button>
+            {showDeleteButton && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSetToDelete(set);
+                  setShowDeleteModal(true);
+                }}
+                className="text-red-500 hover:text-red-700 px-2"
+                aria-label="Delete set"
+              >
+                🗑️
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -263,7 +283,7 @@ export default function ExerciseCard({ exercise, onExerciseNameSave }) {
         onClick={handleAddNewSet}
         className="mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2"
       >
-        Create New Set
+        New Set
       </button>
     </div>
   );

@@ -1,6 +1,6 @@
-// AuthContext.js
 import { createContext, useContext, useEffect, useState } from "react";
-import axios from "axios";
+// import axios from "axios";
+import api from '../api/axiosRefreshInterceptor';
 
 const AuthContext = createContext(null);
 
@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is already authenticated (via cookie) on mount
   useEffect(() => {
-    axios
+    api
       .get("https://127.0.0.1:8000/api/v1/users/profile/", {
         withCredentials: true,
         headers: { "Cache-Control": "no-cache" },

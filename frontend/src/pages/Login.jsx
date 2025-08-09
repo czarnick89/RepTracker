@@ -1,5 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
+// import axios from "axios";
+import api from '../api/axiosRefreshInterceptor'
 import { Link, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -24,13 +25,13 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await axios.post(
+      await api.post(
         "https://127.0.0.1:8000/api/v1/users/login/",
         { email, password },
         { withCredentials: true }
       );
 
-      const res = await axios.get(
+      const res = await api.get(
         "https://127.0.0.1:8000/api/v1/users/profile/",
         { withCredentials: true }
       );
