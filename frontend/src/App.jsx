@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
@@ -11,9 +11,16 @@ import ForgotPassword from "./pages/ForgotPassword";
 import PrivateRoute from "./components/PrivateRoute";
 import ResetPassword from "./pages/ResetPassword";
 import { AuthProvider } from "./contexts/AuthContext";
+import api from './api/axiosRefreshInterceptor'
 
 function App() {
   const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    api.post('/api/v1/users/token/refresh/').catch(() => {
+      // Optional: handle logout if refresh fails
+    });
+  }, []);
 
   return (
     <>

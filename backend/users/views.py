@@ -273,7 +273,7 @@ class CookieTokenRefreshView(TokenRefreshView):
             key='access_token',
             value=access_token,
             httponly=True,
-            secure=False,  # Change to True in production with HTTPS
+            secure=True,  # Change to True in production with HTTPS
             samesite='None',  # Allow cross-site cookie for frontend CORS
             max_age=15 * 60,  # 15 minutes
             path='/',
@@ -285,10 +285,10 @@ class CookieTokenRefreshView(TokenRefreshView):
                 key='refresh_token',
                 value=new_refresh_token,
                 httponly=True,
-                secure=False,  # Change to True in production with HTTPS
+                secure=True,  # Change to True in production with HTTPS
                 samesite='None',
                 max_age=24 * 60 * 60,  # 1 day
-                path='/api/token/refresh/',
+                path='/api/v1/users/token/refresh/',
             )
 
         return response

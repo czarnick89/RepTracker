@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+// import axios from "axios";
+import api from '../api/axiosRefreshInterceptor';
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Profile() {
@@ -12,7 +13,7 @@ export default function Profile() {
     if (!user) return; // No user, do nothing and avoid request
 
     // Only here if user is authenticated and loading is done
-    axios
+    api
       .get("https://127.0.0.1:8000/api/v1/users/profile/", {
         withCredentials: true,
         headers: { "Cache-Control": "no-cache" },
