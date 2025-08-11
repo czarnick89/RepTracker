@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
@@ -10,17 +10,11 @@ import Logout from "./pages/Logout";
 import ForgotPassword from "./pages/ForgotPassword";
 import PrivateRoute from "./components/PrivateRoute";
 import ResetPassword from "./pages/ResetPassword";
+import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
-import api from './api/axiosRefreshInterceptor'
 
 function App() {
   const [count, setCount] = useState(0);
-
-  // useEffect(() => {
-  //   api.post('/api/v1/users/token/refresh/').catch(() => {
-  //     // Optional: handle logout if refresh fails
-  //   });
-  // }, []);
 
   return (
     <>
@@ -32,7 +26,10 @@ function App() {
             <Route path="/logout" element={<Logout />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
+            <Route
+              path="/reset-password/:uid/:token"
+              element={<ResetPassword />}
+            />
             <Route
               path="/dashboard"
               element={
@@ -49,6 +46,7 @@ function App() {
                 </PrivateRoute>
               }
             />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

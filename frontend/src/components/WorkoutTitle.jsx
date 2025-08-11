@@ -25,6 +25,7 @@ function WorkoutTitle({ workout, onNameUpdate, onDelete, showDeleteButton}) {
           type="text"
           value={name}
           autoFocus
+          onClick={(e) => e.stopPropagation()}
           onChange={(e) => setName(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
