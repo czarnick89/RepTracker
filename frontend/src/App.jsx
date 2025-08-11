@@ -16,11 +16,11 @@ import api from './api/axiosRefreshInterceptor'
 function App() {
   const [count, setCount] = useState(0);
 
-  useEffect(() => {
-    api.post('/api/v1/users/token/refresh/').catch(() => {
-      // Optional: handle logout if refresh fails
-    });
-  }, []);
+  // useEffect(() => {
+  //   api.post('/api/v1/users/token/refresh/').catch(() => {
+  //     // Optional: handle logout if refresh fails
+  //   });
+  // }, []);
 
   return (
     <>

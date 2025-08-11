@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status as s
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from .serializers import UserRegisterSerializer, UserProfileSerializer, MyTokenObtainPairSerializer
 from django.core.mail import send_mail
 from django.contrib.sites.shortcuts import get_current_site
@@ -95,29 +95,27 @@ class MyTokenObtainPairView(TokenObtainPairView):  # login
             secure=True,        # <-- must be True for HTTPS
             samesite='None',    # <-- None required for cross-site with Secure
             max_age=24 * 60 * 60,
-            path='/api/v1/users/token/refresh/',
+            path='/api/v1/users/',
         )
 
         return response
     
 class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # Allow access without authentication
 
     def post(self, request):
         refresh_token = request.COOKIES.get("refresh_token")
 
         if refresh_token:
             try:
-                # Attempt to blacklist the refresh token
                 token = RefreshToken(refresh_token)
                 token.blacklist()
             except Exception:
-                pass  # Could log this if needed, but don't expose to client
+                pass  # Optionally log here
 
-        # Clear the cookies from client
         response = Response({"detail": "Logged out successfully."}, status=s.HTTP_200_OK)
         response.delete_cookie("access_token", path='/')
-        response.delete_cookie("refresh_token", path='/api/v1/users/token/refresh/')
+        response.delete_cookie("refresh_token", path='/api/v1/users/')
         return response
     
 class PasswordResetRequestView(APIView):
@@ -288,7 +286,7 @@ class CookieTokenRefreshView(TokenRefreshView):
                 secure=True,  # Change to True in production with HTTPS
                 samesite='None',
                 max_age=24 * 60 * 60,  # 1 day
-                path='/api/v1/users/token/refresh/',
+                path='/api/v1/users/',
             )
 
         return response
