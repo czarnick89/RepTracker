@@ -62,7 +62,12 @@ export default function Dashboard() {
   const handleAddNewExercise = (workoutId) => {
     setExercisesByWorkout((prev) => {
       const prevExercises = prev[workoutId] || [];
-      const blankExercise = { id: tempExerciseId, name: "", sets: [] };
+      const blankExercise = {
+        id: tempExerciseId,
+        name: "",
+        sets: [],
+        workoutId,
+      };
       setTempExerciseId((id) => id - 1);
       return {
         ...prev,
@@ -89,6 +94,31 @@ export default function Dashboard() {
       });
     } catch (error) {
       console.error("Failed to create new exercise", error);
+    }
+  };
+
+  const handleExerciseNameSave = async (exercise, newName) => {
+    if (exercise.id < 0) {
+      // Creating new exercise
+      await handleSaveNewExercise(exercise.workoutId, exercise.id, newName);
+    } else {
+      // Updating existing exercise
+      try {
+        const res = await api.patch(
+          `/api/v1/workouts/exercises/${exercise.id}/`,
+          {
+            name: newName, // String, NOT an object
+            workout: exercise.workoutId, // include workout id as number
+          },
+          { withCredentials: true }
+        );
+
+        const updatedExercise = res.data;
+
+        // update local state, etc.
+      } catch (error) {
+        console.error("Failed to update exercise name", error);
+      }
     }
   };
 
@@ -348,16 +378,9 @@ export default function Dashboard() {
                       <ExerciseCard
                         key={exercise.id}
                         exercise={exercise}
-                        onExerciseNameSave={(newName) =>
-                          handleSaveNewExercise(
-                            workout.id,
-                            exercise.id,
-                            newName
-                          )
-                        }
-                        onDelete={
-                          () =>
-                            handleConfirmDeleteExercise(workout.id, exercise.id) // open modal here
+                        onExerciseNameSave={handleExerciseNameSave}
+                        onDelete={() =>
+                          handleConfirmDeleteExercise(workout.id, exercise.id)
                         }
                         showDeleteButton={showDeleteButtons}
                       />

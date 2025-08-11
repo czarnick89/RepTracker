@@ -1,6 +1,6 @@
-import React, { useState, useRef } from "react";
-// import axios from "axios";
+import React, { useState, useRef, useEffect } from "react";
 import api from "../api/axiosRefreshInterceptor";
+import { exerciseNames } from "../data/exerciseNames";
 
 export default function ExerciseCard({
   exercise,
@@ -16,34 +16,54 @@ export default function ExerciseCard({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [setToDelete, setSetToDelete] = useState(null);
 
+  const [filteredExercises, setFilteredExercises] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const selectingFromDropdownRef = useRef(false);
+
   const weightInputRef = useRef(null);
 
   // Add a useEffect to sync local exerciseName when exercise prop changes (e.g., after saving new exercise)
-  React.useEffect(() => {
+  useEffect(() => {
     setExerciseName(exercise.name);
     setSets(exercise.sets);
   }, [exercise]);
 
   // PATCH update exercise name on blur
-  const updateExerciseName = () => {
-    if (exerciseName === exercise.name) return;
-
-    if (exercise.id < 0) {
-      // Call parent's callback to create exercise on backend
-      if (onExerciseNameSave) {
-        onExerciseNameSave(exerciseName);
-      }
+  const handleExerciseNameBlur = () => {
+    if (selectingFromDropdownRef.current) {
+      // Just selected from dropdown, skip this blur save
+      selectingFromDropdownRef.current = false;
       return;
     }
+    if (exerciseName === exercise.name) return;
 
-    // Existing PATCH logic for existing exercises
-    api
-      .patch(
-        `https://127.0.0.1:8000/api/v1/workouts/exercises/${exercise.id}/`,
-        { name: exerciseName },
-        { withCredentials: true }
-      )
-      .catch((err) => console.error("Failed to update exercise name", err));
+    if (onExerciseNameSave) {
+      onExerciseNameSave(exercise, exerciseName);
+    }
+  };
+
+  const handleDropdownOptionMouseDown = (name) => {
+    selectingFromDropdownRef.current = true; // flag that selection is happening
+    setExerciseName(name);
+    setShowDropdown(false);
+    if (onExerciseNameSave) onExerciseNameSave(exercise, name);
+  };
+
+  const handleExerciseNameChange = (e) => {
+    const input = e.target.value;
+    setExerciseName(input);
+
+    if (input.length >= 2) {
+      const filtered = exerciseNames.filter((name) =>
+        name.toLowerCase().includes(input.toLowerCase())
+      );
+      setFilteredExercises(filtered);
+      setShowDropdown(true);
+    } else {
+      setFilteredExercises([]);
+      setShowDropdown(false);
+    }
   };
 
   // PATCH update set on blur
@@ -162,23 +182,44 @@ export default function ExerciseCard({
   return (
     <div className="bg-gray-800 rounded-md p-4 m-2 flex-grow min-w-[180px] max-w-[300px] border border-gray-600">
       {/* Editable exercise name */}
-      <div className="flex items-center space-x-2 mb-4">
-        <input
-          type="text"
-          value={exerciseName}
-          onChange={(e) => setExerciseName(e.target.value)}
-          onBlur={updateExerciseName}
-          className="flex-grow bg-gray-700 text-white font-semibold text-center rounded px-2 py-1"
-        />
-        {showDeleteButton && (
-          <button
-            onClick={onDelete}
-            className="text-red-600 hover:text-red-800 font-bold px-3 py-1 rounded"
-            aria-label={`Delete exercise ${exerciseName}`}
-            type="button"
-          >
-            🗑️
-          </button>
+      <div className="relative mb-4 w-full">
+        <div className="flex items-center">
+          <input
+            type="text"
+            value={exerciseName}
+            onChange={handleExerciseNameChange}
+            onBlur={handleExerciseNameBlur}
+            className="bg-gray-700 text-white font-semibold text-center rounded px-2 py-1 flex-grow"
+          />
+          {showDeleteButton && (
+            <button
+              onClick={onDelete}
+              className="text-red-600 hover:text-red-800 font-bold px-3 py-1 rounded ml-2 flex-shrink-0"
+              aria-label={`Delete exercise ${exerciseName}`}
+              type="button"
+            >
+              🗑️
+            </button>
+          )}
+        </div>
+
+        {showDropdown && filteredExercises.length > 0 && (
+          <ul className="absolute top-full left-0 right-0 bg-gray-800 border border-gray-600 max-h-48 overflow-auto mt-1 z-50 rounded shadow-lg">
+            {filteredExercises.map((name, idx) => (
+              <li
+                key={idx}
+                className="px-3 py-1 hover:bg-gray-600 cursor-pointer"
+                onMouseDown={() => {
+                  selectingFromDropdownRef.current = true; // <-- Set flag here
+                  setExerciseName(name);
+                  setShowDropdown(false);
+                  if (onExerciseNameSave) onExerciseNameSave(exercise, name);
+                }}
+              >
+                {name}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 

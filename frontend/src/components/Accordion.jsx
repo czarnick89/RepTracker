@@ -6,7 +6,7 @@ export default function Accordion({ title, children }) {
   const toggleOpen = () => setOpen((prev) => !prev);
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === " ") {
+    if (e.key === "Enter") {
       e.preventDefault();
       toggleOpen();
     }
