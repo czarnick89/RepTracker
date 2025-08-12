@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status as s
 from rest_framework.exceptions import PermissionDenied
 from .models import Set, Exercise, Workout, TemplateSet, TemplateExercise, TemplateWorkout
 from .serializers import SetSerializer, ExerciseSerializer, WorkoutSerializer, TemplateSetSerializer, TemplateExerciseSerializer, TemplateWorkoutSerializer
@@ -10,6 +10,26 @@ import requests
 from django.conf import settings
 from django.http import HttpResponse
 from decouple import config
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def exercise_by_name_proxy(request):
+    name = request.query_params.get('name')
+    if not name:
+        return Response({"detail": "Missing 'name' parameter"}, status=s.HTTP_400_BAD_REQUEST)
+
+    url = f"https://exercisedb.p.rapidapi.com/exercises/name/{name}"
+    headers = {
+        "X-RapidAPI-Key": config('RAPIDAPI_KEY'),
+        "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
+    }
+
+    resp = requests.get(url, headers=headers)
+
+    if resp.status_code != 200:
+        return Response({"detail": "Failed to fetch exercise from external API"}, status=resp.status_code)
+
+    return Response(resp.json())
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
