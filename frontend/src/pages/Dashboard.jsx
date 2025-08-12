@@ -259,11 +259,11 @@ export default function Dashboard() {
             Analytics
           </Link>
           <Link
-            to="/settings"
+            to="/profile"
             onClick={handleCloseSidebar}
             className="hover:text-gray-300"
           >
-            Settings
+            Profile
           </Link>
           <button
             onClick={() => setLogoutModalOpen(true)}
