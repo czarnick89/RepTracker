@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import api from "../api/axiosRefreshInterceptor";
 import { exerciseNames } from "../data/exerciseNames";
+import InfoModal from "./InfoModal";
+import { getExerciseByName, getExerciseGifUrl } from "../api/exerciseDB";
+// import { mockData } from "../data/mockData";
 
 export default function ExerciseCard({
   exercise,
@@ -19,9 +22,15 @@ export default function ExerciseCard({
   const [filteredExercises, setFilteredExercises] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [exerciseInfo, setExerciseInfo] = useState(null);
+  const [loadingInfo, setLoadingInfo] = useState(false);
+  const [errorInfo, setErrorInfo] = useState(null);
+
   const selectingFromDropdownRef = useRef(false);
 
   const weightInputRef = useRef(null);
+  const exerciseInfoCache = useRef({});
 
   // Add a useEffect to sync local exerciseName when exercise prop changes (e.g., after saving new exercise)
   useEffect(() => {
@@ -36,6 +45,10 @@ export default function ExerciseCard({
       selectingFromDropdownRef.current = false;
       return;
     }
+
+    // Always close the dropdown on blur
+    setShowDropdown(false);
+
     if (exerciseName === exercise.name) return;
 
     if (onExerciseNameSave) {
@@ -136,6 +149,43 @@ export default function ExerciseCard({
     }, 100);
   };
 
+  const fetchExerciseInfo = async (name) => {
+    if (!name || name.trim() === "") {
+      setErrorInfo("Please enter an exercise name");
+      setExerciseInfo(null);
+      return;
+    }
+
+    const lowerName = name.toLowerCase();
+
+    if (exerciseInfoCache.current[lowerName]) {
+      setExerciseInfo(exerciseInfoCache.current[lowerName]);
+      setErrorInfo(null);
+      setLoadingInfo(false);
+      return;
+    }
+
+    setLoadingInfo(true);
+    setErrorInfo(null);
+
+    try {
+      const data = await getExerciseByName(lowerName);
+      if (data.length > 0) {
+        exerciseInfoCache.current[lowerName] = data[0]; // cache it
+        setExerciseInfo(data[0]);
+        setErrorInfo(null);
+      } else {
+        setExerciseInfo(null);
+        setErrorInfo("No exercise found");
+      }
+    } catch (err) {
+      setErrorInfo("Failed to fetch exercise info");
+      setExerciseInfo(null);
+    } finally {
+      setLoadingInfo(false);
+    }
+  };
+
   // Validation helpers
   const isValidReps = (val) => {
     const num = Number(val);
@@ -184,12 +234,25 @@ export default function ExerciseCard({
       {/* Editable exercise name */}
       <div className="relative mb-4 w-full">
         <div className="flex items-center">
+          <button
+            type="button"
+            aria-label="Show exercise info"
+            onClick={() => {
+              fetchExerciseInfo(exerciseName);
+              setIsInfoModalOpen(true);
+            }}
+            className="text-blue-400 hover:text-blue-600 font-bold px-2 py-1 mr-2 flex-shrink-0"
+            disabled={loadingInfo}
+          >
+            ?
+          </button>
+
           <input
             type="text"
             value={exerciseName}
             onChange={handleExerciseNameChange}
             onBlur={handleExerciseNameBlur}
-            className="bg-gray-700 text-white font-semibold text-center rounded px-2 py-1 flex-grow"
+            className="bg-gray-700 text-white font-semibold text-center rounded px-2 py-1 flex-grow overflow-x-auto"
           />
           {showDeleteButton && (
             <button
@@ -202,6 +265,50 @@ export default function ExerciseCard({
             </button>
           )}
         </div>
+        <InfoModal
+          isOpen={isInfoModalOpen}
+          onClose={() => setIsInfoModalOpen(false)}
+        >
+          {loadingInfo ? (
+            <p>Loading exercise info...</p>
+          ) : errorInfo ? (
+            <p className="text-red-500">{errorInfo}</p>
+          ) : exerciseInfo ? (
+            <div className="space-y-4">
+              <img
+                src={getExerciseGifUrl(exerciseInfo.id)}
+                alt={`${exerciseInfo.name} animation`}
+                className="w-full rounded"
+              />
+
+              <h2 className="text-2xl font-bold capitalize">
+                {exerciseInfo.name}
+              </h2>
+              <p className="text-sm text-gray-300">
+                <strong>Target:</strong> {exerciseInfo.target}
+              </p>
+              <p className="text-sm text-gray-300">
+                <strong>Secondary Muscles:</strong>{" "}
+                {exerciseInfo.secondaryMuscles.join(", ")}
+              </p>
+              {exerciseInfo.description && (
+                <p className="text-base">{exerciseInfo.description}</p>
+              )}
+              {exerciseInfo.instructions && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Instructions</h3>
+                  <ol className="list-decimal list-inside space-y-1">
+                    {exerciseInfo.instructions.map((step, index) => (
+                      <li key={index}>{step}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p>No exercise data to show.</p>
+          )}
+        </InfoModal>
 
         {showDropdown && filteredExercises.length > 0 && (
           <ul className="absolute top-full left-0 right-0 bg-gray-800 border border-gray-600 max-h-48 overflow-auto mt-1 z-50 rounded shadow-lg">
