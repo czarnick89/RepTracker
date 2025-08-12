@@ -184,3 +184,24 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # change for production
+
+GOOGLE_CLIENT_ID = "214659367278-a5lgqjoeittvnspgt8mq8b6cotiiih6a.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET = config('GOOGLE_SECRET')
+GOOGLE_REDIRECT_URI = "https://127.0.0.1:8000/api/v1/workouts/google-calendar/oauth2callback"  
+
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+# Use HTTPS for cookies (set to True in production and local HTTPS)
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# Allow cross-site cookie sending (needed for OAuth redirects)
+SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SAMESITE = 'None'
+
+# Optional: increase session expiration if needed
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds (default)
+
+# Optional: ensure cookie is only sent over HTTP(S), not accessible by JavaScript
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # Usually CSRF cookie is accessible by JS for CSRF tokens

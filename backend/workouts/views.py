@@ -10,6 +10,14 @@ import requests
 from django.conf import settings
 from django.http import HttpResponse
 from decouple import config
+from django.shortcuts import redirect
+import os
+from google_auth_oauthlib.flow import Flow
+from datetime import timezone, timedelta, datetime
+from .google_calendar_utils import get_google_calendar_service
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
@@ -174,3 +182,124 @@ class TemplateWorkoutViewSet(viewsets.ModelViewSet):
         if instance.user != self.request.user:
             raise PermissionDenied("You do not have permission to delete this template.")
         instance.delete()
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def google_calendar_auth_start(request):
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
+                "scopes": [
+                    "https://www.googleapis.com/auth/calendar.events",
+                    "https://www.googleapis.com/auth/calendar.readonly",
+                ],
+            }
+        },
+        scopes=[
+            "https://www.googleapis.com/auth/calendar.events",
+            "https://www.googleapis.com/auth/calendar.readonly",
+        ],
+        redirect_uri=settings.GOOGLE_REDIRECT_URI,
+    )
+
+    authorization_url, state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true',
+        prompt='consent',
+    )
+
+    # Save the state and user ID in session to verify later
+    request.session['google_oauth_state'] = state
+    request.session['google_oauth_user_id'] = request.user.id  # <<<<< Add this line
+
+    return redirect(authorization_url)
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def google_calendar_oauth2callback(request):
+    state = request.session.get('google_oauth_state')
+    user_id = request.session.get('google_oauth_user_id')
+    if not user_id:
+        return Response({"detail": "User session not found."}, status=400)
+    
+    User = get_user_model()
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({"detail": "User not found."}, status=404)
+
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
+                "scopes": [
+                    "https://www.googleapis.com/auth/calendar.events",
+                    "https://www.googleapis.com/auth/calendar.readonly",
+                ],
+            }
+        },
+        scopes=[
+            "https://www.googleapis.com/auth/calendar.events",
+            "https://www.googleapis.com/auth/calendar.readonly",
+        ],
+        state=state,
+        redirect_uri=settings.GOOGLE_REDIRECT_URI,
+    )
+
+    authorization_response = request.build_absolute_uri()
+    flow.fetch_token(authorization_response=authorization_response)
+
+    credentials = flow.credentials
+
+    expiry = credentials.expiry
+    if expiry is not None and expiry.tzinfo is None:
+        expiry = expiry.replace(tzinfo=timezone.utc)
+
+    user.google_access_token = credentials.token
+    user.google_refresh_token = credentials.refresh_token
+    user.google_token_expiry = expiry
+    user.save()
+
+    return redirect("https://127.0.0.1:5173/profile")
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def add_workout_to_calendar(request):
+    service = get_google_calendar_service(request.user)
+    if not service:
+        return Response({"detail": "Google Calendar authorization required."}, status=401)  # <-- Changed here
+
+    data = request.data
+    # Example data expected: {"summary": "Leg Day Workout", "start_time": "2025-08-15T18:00:00Z", "end_time": "2025-08-15T19:00:00Z"}
+
+    event = {
+        'summary': data.get('summary', 'Workout'),
+        'location': data.get('location', ''),
+        'description': data.get('description', ''),
+        'start': {'dateTime': data.get('start_time'), 'timeZone': 'UTC'},
+        'end': {'dateTime': data.get('end_time'), 'timeZone': 'UTC'},
+    }
+
+    created_event = service.events().insert(calendarId='primary', body=event).execute()
+
+    return Response({"detail": "Event created", "event_id": created_event.get('id')})
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def google_calendar_status(request):
+    user = request.user
+    connected = bool(
+        user.google_access_token and
+        user.google_refresh_token and
+        user.google_token_expiry
+    )
+    return Response({"connected": connected})
