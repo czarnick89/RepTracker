@@ -3,9 +3,42 @@ from rest_framework.exceptions import PermissionDenied
 from .models import Set, Exercise, Workout, TemplateSet, TemplateExercise, TemplateWorkout
 from .serializers import SetSerializer, ExerciseSerializer, WorkoutSerializer, TemplateSetSerializer, TemplateExerciseSerializer, TemplateWorkoutSerializer
 from rest_framework.generics import get_object_or_404
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from django.db.models import Prefetch
+import requests
+from django.conf import settings
+from django.http import HttpResponse
+from decouple import config
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def exercise_gif_proxy(request):
+
+    #permission_classes = [permissions.IsAuthenticated] # for some reason you cant do this in a function body
+
+    exercise_db_id = request.query_params.get('exerciseId')
+    resolution = request.query_params.get('resolution', '180')
+
+    if not exercise_db_id:
+        return HttpResponse("Missing 'exerciseId' parameter", status=400)
+
+    url = "https://exercisedb.p.rapidapi.com/image"
+    params = {
+        "exerciseId": exercise_db_id,
+        "resolution": resolution,
+    }
+    headers = {
+        "X-RapidAPI-Key": config('RAPIDAPI_KEY'),
+        "X-RapidAPI-Host": "exercisedb.p.rapidapi.com"
+    }
+
+    resp = requests.get(url, headers=headers, params=params)
+
+    if resp.status_code != 200:
+        return HttpResponse("Image not found", status=resp.status_code)
+
+    return HttpResponse(resp.content, content_type=resp.headers.get("Content-Type", "image/gif"))
 
 # Create your views here.
 class SetViewSet(viewsets.ModelViewSet):

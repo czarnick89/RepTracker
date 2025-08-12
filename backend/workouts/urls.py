@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import WorkoutViewSet, ExerciseViewSet, SetViewSet, TemplateSetViewSet, TemplateExerciseViewSet, TemplateWorkoutViewSet
+from .views import WorkoutViewSet, ExerciseViewSet, SetViewSet, TemplateSetViewSet, TemplateExerciseViewSet, TemplateWorkoutViewSet, exercise_gif_proxy
 
 router = DefaultRouter()
 router.register('workouts', WorkoutViewSet, basename='workout')
@@ -12,4 +12,5 @@ router.register('template-sets', TemplateSetViewSet, basename='templateset')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('exercise-gif/', exercise_gif_proxy, name='exercise_gif_proxy'),
 ]
