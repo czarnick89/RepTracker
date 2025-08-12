@@ -1,5 +1,6 @@
 export const exerciseNames = [
   "Flat dumbbell bench press",
+  "Dumbbell bench press",
   "Chest supported dumbbell row",
   "Barbell incline bench press",
   "Row machine",
