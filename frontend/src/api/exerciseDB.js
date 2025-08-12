@@ -13,5 +13,5 @@ export const getExerciseByName = async (name) => {
 };
 
 export const getExerciseGifUrl = (exerciseId, resolution = 180) => {
-  return `${API_BASE}/image?exerciseId=${exerciseId}&resolution=${resolution}&rapidapi-key=${API_KEY}`;
+  return `https://127.0.0.1:8000/api/v1/workouts/exercise-gif?exerciseId=${exerciseId}&resolution=${resolution}`;
 };
