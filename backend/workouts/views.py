@@ -104,7 +104,20 @@ class WorkoutViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def recent(self, request):
-        workouts = self.get_queryset()[:10]
+        """
+        Return a paginated list of the user's workouts.
+        Query params:
+        - offset: how many workouts to skip (default 0)
+        - limit: number of workouts to return (default 10)
+        """
+        try:
+            offset = int(request.query_params.get('offset', 0))
+            limit = int(request.query_params.get('limit', 10))
+        except ValueError:
+            offset = 0
+            limit = 10
+
+        workouts = self.get_queryset()[offset : offset + limit]
         serializer = self.get_serializer(workouts, many=True)
         return Response(serializer.data)
 
@@ -295,16 +308,8 @@ def add_workout_to_calendar(request):
 
     return Response({"detail": "Event created", "event_id": created_event.get('id')})
 
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-import logging
-from .google_calendar_utils import get_google_calendar_service
-
-logger = logging.getLogger(__name__)
-
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated])
 def google_calendar_status(request):
     user = request.user
 

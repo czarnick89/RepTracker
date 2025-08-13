@@ -1,4 +1,3 @@
-// src/pages/Dashboard.jsx
 import { useState, useEffect } from "react";
 import Accordion from "../components/Accordion";
 import api from "../api/axiosRefreshInterceptor";
@@ -17,25 +16,61 @@ export default function Dashboard() {
   const [exerciseToDelete, setExerciseToDelete] = useState(null);
   const [showDeleteButtons, setShowDeleteButtons] = useState(false);
 
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true); // tracks if there are more workouts to load
+  const PAGE_SIZE = 10; // same as backend default limit
+
   useEffect(() => {
-    api
-      .get("https://127.0.0.1:8000/api/v1/workouts/workouts/recent/", {
-        withCredentials: true,
-      })
-      .then((res) => {
-        const sorted = [...res.data].sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        );
+    fetchWorkouts(true); // reset on first load
+  }, []);
+
+  const fetchWorkouts = async (reset = false) => {
+    try {
+      const res = await api.get(
+        "https://127.0.0.1:8000/api/v1/workouts/workouts/recent/",
+        {
+          withCredentials: true,
+          params: {
+            offset: reset ? 0 : offset,
+            limit: PAGE_SIZE,
+          },
+        }
+      );
+
+      const sorted = [...res.data].sort(
+        (a, b) => new Date(b.date) - new Date(a.date)
+      );
+
+      if (reset) {
         setWorkouts(sorted);
         const exercisesMap = {};
         sorted.forEach((w) => {
           exercisesMap[w.id] = w.exercises || [];
         });
         setExercisesByWorkout(exercisesMap);
-      })
-      .catch((err) => console.error("Failed to load workouts", err))
-      .finally(() => setLoading(false));
-  }, []);
+        setOffset(sorted.length);
+      } else {
+        setWorkouts((prev) => [...prev, ...sorted]);
+        setOffset((prev) => prev + sorted.length);
+
+        // update exercises map
+        setExercisesByWorkout((prev) => {
+          const newMap = { ...prev };
+          sorted.forEach((w) => {
+            newMap[w.id] = w.exercises || [];
+          });
+          return newMap;
+        });
+      }
+
+      // If we got fewer than PAGE_SIZE, there’s no more to load
+      if (res.data.length < PAGE_SIZE) setHasMore(false);
+    } catch (err) {
+      console.error("Failed to load workouts", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddNewExercise = (workoutId) => {
     setExercisesByWorkout((prev) => {
@@ -254,14 +289,26 @@ export default function Dashboard() {
                 />
               ))}
             </div>
-            <button
-              onClick={() => handleAddNewExercise(workout.id)}
-              className="mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2"
-            >
-              New Exercise
-            </button>
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => handleAddNewExercise(workout.id)}
+                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2"
+              >
+                New Exercise
+              </button>
+            </div>
           </Accordion>
         ))
+      )}
+      {hasMore && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => fetchWorkouts()}
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
+          >
+            Load More Workouts
+          </button>
+        </div>
       )}
     </>
   );
