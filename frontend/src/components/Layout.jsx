@@ -29,7 +29,7 @@ export default function Layout({ children }) {
           className="text-xl font-bold hover:text-gray-300"
           onClick={() => setSidebarOpen(false)}
         >
-          RepTrack Dashboard
+          RepTrack 
         </Link>
       </nav>
 

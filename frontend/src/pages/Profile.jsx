@@ -171,20 +171,41 @@ export default function Profile() {
           User Profile
         </h2>
         {!googleCalendarConnected ? (
-          <button
-            onClick={() => {
-              window.location.href =
-                "https://127.0.0.1:8000/api/v1/workouts/google-calendar/auth-start/";
-            }}
-            className="w-full bg-blue-600 text-black py-3 rounded-md hover:bg-blue-700 transition shadow-md"
-          >
-            Connect Google Calendar
-          </button>
-        ) : (
-          <p className="text-green-600 font-semibold flex items-center gap-2">
-            Google Calendar connected <span aria-label="checkmark">✅</span>
-          </p>
-        )}
+  <button
+    onClick={() => {
+      window.location.href =
+        "https://127.0.0.1:8000/api/v1/workouts/google-calendar/auth-start/";
+    }}
+    className="w-full bg-blue-600 text-black py-3 rounded-md hover:bg-blue-700 transition shadow-md"
+  >
+    Connect Google Calendar
+  </button>
+) : (
+  <div className="flex flex-col items-center gap-2 w-full">
+    <p className="text-green-600 font-semibold flex items-center gap-2">
+      Google Calendar connected <span aria-label="checkmark">✅</span>
+    </p>
+    <button
+      onClick={async () => {
+        try {
+          await api.post(
+            "/api/v1/workouts/google-calendar/disconnect/",
+            {},
+            { withCredentials: true }
+          );
+          setGoogleCalendarConnected(false);
+          alert("Google Calendar disconnected");
+        } catch (err) {
+          console.error("Failed to disconnect Google Calendar", err);
+          alert("Error disconnecting Google Calendar");
+        }
+      }}
+      className="w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700 transition shadow-md"
+    >
+      Disconnect Google Calendar
+    </button>
+  </div>
+)}
 
         <div className="w-full space-y-4 text-slate-700">
           <p>
