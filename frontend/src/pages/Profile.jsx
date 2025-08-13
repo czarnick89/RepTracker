@@ -55,6 +55,7 @@ export default function Profile() {
     }
   };
 
+  // Fetch Google Calendar connection status
   useEffect(() => {
     if (loading || !user) return;
 
@@ -74,6 +75,7 @@ export default function Profile() {
     fetchStatus();
   }, [loading, user]);
 
+  // Fetch user profile
   useEffect(() => {
     if (loading || !user) return;
 
@@ -93,6 +95,7 @@ export default function Profile() {
 
   return (
     <div className="bg-slate-900 min-h-screen flex flex-col md:flex-row items-center justify-center gap-10 px-6 py-12 pt-5">
+      {/* Workout Scheduler Form */}
       <form
         onSubmit={handleSubmit}
         className="bg-white rounded-lg shadow-md max-w-md w-full p-6 space-y-5"
@@ -100,6 +103,7 @@ export default function Profile() {
         <h2 className="text-2xl font-bold text-slate-800 text-center w-full border-b border-gray-300 pb-3">
           Workout Scheduler
         </h2>
+
         <input
           type="text"
           name="title"
@@ -109,6 +113,7 @@ export default function Profile() {
           className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-black"
           required
         />
+
         <input
           type="date"
           name="date"
@@ -117,6 +122,7 @@ export default function Profile() {
           className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-black"
           required
         />
+
         <div className="flex gap-4">
           <input
             type="time"
@@ -135,6 +141,7 @@ export default function Profile() {
             required
           />
         </div>
+
         <input
           type="text"
           name="location"
@@ -143,6 +150,7 @@ export default function Profile() {
           onChange={handleChange}
           className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-black"
         />
+
         <button
           type="submit"
           className="w-full bg-blue-600 text-white font-semibold py-3 rounded-md hover:bg-blue-700 transition shadow-md"
@@ -151,6 +159,7 @@ export default function Profile() {
         </button>
       </form>
 
+      {/* User Profile & Password */}
       <aside className="bg-white rounded-lg shadow-md p-8 max-w-md w-full flex flex-col items-center space-y-6">
         <h2 className="text-2xl font-bold text-slate-800 text-center w-full border-b border-gray-300 pb-3">
           User Profile
@@ -158,10 +167,10 @@ export default function Profile() {
 
         {!googleCalendarConnected ? (
           <button
-            onClick={() => {
-              window.location.href =
-                "https://127.0.0.1:8000/api/v1/workouts/google-calendar/auth-start/";
-            }}
+            onClick={() =>
+              (window.location.href =
+                "https://127.0.0.1:8000/api/v1/workouts/google-calendar/auth-start/")
+            }
             className="w-full bg-blue-600 text-black py-3 rounded-md hover:bg-blue-700 transition shadow-md"
           >
             Connect Google Calendar
@@ -193,6 +202,7 @@ export default function Profile() {
           </div>
         )}
 
+        {/* Profile Info */}
         <div className="w-full space-y-4 text-slate-700">
           <p>
             <span className="font-semibold">Username:</span> {profile.username}
@@ -202,7 +212,7 @@ export default function Profile() {
           </p>
         </div>
 
-        {/* Replace old Change Password form with your component */}
+        {/* Change Password Form */}
         <ChangePasswordForm />
       </aside>
     </div>
