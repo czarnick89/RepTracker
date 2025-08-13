@@ -28,6 +28,8 @@ export default function ExerciseCard({
   const [loadingInfo, setLoadingInfo] = useState(false);
   const [errorInfo, setErrorInfo] = useState(null);
 
+  const [cooldown, setCooldown] = useState(0);
+
   const selectingFromDropdownRef = useRef(false);
 
   const weightInputRef = useRef(null);
@@ -38,6 +40,13 @@ export default function ExerciseCard({
     setExerciseName(exercise.name);
     setSets(exercise.sets);
   }, [exercise]);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   // PATCH update exercise name on blur
   const handleExerciseNameBlur = () => {
@@ -180,11 +189,17 @@ export default function ExerciseCard({
         setErrorInfo("No exercise found");
       }
     } catch (err) {
-      setErrorInfo("Failed to fetch exercise info");
+      setErrorInfo(err.message);
       setExerciseInfo(null);
     } finally {
       setLoadingInfo(false);
     }
+  };
+
+  const handleInfoClick = () => {
+    setCooldown(5); // 5-second cooldown
+    fetchExerciseInfo(exerciseName);
+    setIsInfoModalOpen(true);
   };
 
   // Validation helpers
@@ -238,14 +253,11 @@ export default function ExerciseCard({
           <button
             type="button"
             aria-label="Show exercise info"
-            onClick={() => {
-              fetchExerciseInfo(exerciseName);
-              setIsInfoModalOpen(true);
-            }}
+            onClick={handleInfoClick}
             className="text-blue-400 hover:text-blue-600 font-bold px-2 py-1 flex-shrink-0 w-8"
-            disabled={loadingInfo}
+            disabled={loadingInfo || cooldown > 0}
           >
-            ?
+            {cooldown > 0 ? cooldown : "?"}
           </button>
 
           {/* Exercise name input */}
