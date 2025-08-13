@@ -10,6 +10,7 @@ export default function ExerciseCard({
   onExerciseNameSave,
   onDelete,
   showDeleteButton,
+  onWeightPreferenceChange,
 }) {
   const [exerciseName, setExerciseName] = useState(exercise.name);
   // For sets, keep track of reps and weight locally too:
@@ -230,10 +231,10 @@ export default function ExerciseCard({
   };
 
   return (
-    <div className="bg-gray-800 rounded-md p-4 m-2 flex-grow min-w-[180px] max-w-[300px] border border-gray-600">
-      {/* Editable exercise name */}
+    <div className="bg-gray-800 rounded-md p-4 m-2 flex-grow min-w-[200px] max-w-[340px] border border-gray-600">
       <div className="relative mb-4 w-full">
-        <div className="flex items-center">
+        <div className="flex items-center gap-2 w-full">
+          {/* Info button */}
           <button
             type="button"
             aria-label="Show exercise info"
@@ -241,23 +242,39 @@ export default function ExerciseCard({
               fetchExerciseInfo(exerciseName);
               setIsInfoModalOpen(true);
             }}
-            className="text-blue-400 hover:text-blue-600 font-bold px-2 py-1 mr-2 flex-shrink-0"
+            className="text-blue-400 hover:text-blue-600 font-bold px-2 py-1 flex-shrink-0 w-8"
             disabled={loadingInfo}
           >
             ?
           </button>
 
+          {/* Exercise name input */}
           <input
             type="text"
             value={exerciseName}
             onChange={handleExerciseNameChange}
             onBlur={handleExerciseNameBlur}
-            className="bg-gray-700 text-white font-semibold text-center rounded px-2 py-1 flex-grow overflow-x-auto"
+            className="bg-gray-700 text-white font-semibold text-center rounded px-2 py-1 flex-grow min-w-[100px] max-w-[500px] overflow-x-auto"
           />
+
+          {/* Weight change dropdown */}
+          <select
+            value={exercise.weight_change_preference}
+            onChange={(e) =>
+              onWeightPreferenceChange(exercise.id, e.target.value)
+            }
+            className="bg-gray-700 text-white font-semibold text-center rounded px-0 py-1 w-6 appearance-none flex-shrink-0"
+          >
+            <option value="increase">⬆️</option>
+            <option value="same">➖</option>
+            <option value="decrease">⬇️</option>
+          </select>
+
+          {/* Optional trash button */}
           {showDeleteButton && (
             <button
               onClick={onDelete}
-              className="text-red-600 hover:text-red-800 font-bold px-3 py-1 rounded ml-2 flex-shrink-0"
+              className="text-red-600 hover:text-red-800 font-bold px-3 py-1 rounded flex-shrink-0"
               aria-label={`Delete exercise ${exerciseName}`}
               type="button"
             >
@@ -265,6 +282,7 @@ export default function ExerciseCard({
             </button>
           )}
         </div>
+
         <InfoModal
           isOpen={isInfoModalOpen}
           onClose={() => setIsInfoModalOpen(false)}
@@ -428,12 +446,12 @@ export default function ExerciseCard({
 
       {/* Create New Set Button */}
       <div className="flex justify-center mt-4">
-      <button
-        onClick={handleAddNewSet}
-        className="mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2"
-      >
-        New Set
-      </button>
+        <button
+          onClick={handleAddNewSet}
+          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2"
+        >
+          New Set
+        </button>
       </div>
     </div>
   );

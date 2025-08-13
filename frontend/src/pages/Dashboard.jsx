@@ -194,6 +194,34 @@ export default function Dashboard() {
     }
   };
 
+  const handleWeightPreferenceChange = async (
+    workoutId,
+    exerciseId,
+    newPreference
+  ) => {
+    try {
+      // Optimistically update frontend state
+      setExercisesByWorkout((prev) => {
+        const updatedExercises = prev[workoutId].map((ex) =>
+          ex.id === exerciseId
+            ? { ...ex, weight_change_preference: newPreference }
+            : ex
+        );
+        return { ...prev, [workoutId]: updatedExercises };
+      });
+
+      // Send PATCH request to backend
+      await api.patch(
+        `/api/v1/workouts/exercises/${exerciseId}/`,
+        { weight_change_preference: newPreference },
+        { withCredentials: true }
+      );
+    } catch (err) {
+      console.error("Failed to update weight preference:", err);
+      // Optionally revert frontend state here if you want
+    }
+  };
+
   if (loading) return <p>Loading workouts...</p>;
 
   return (
@@ -286,6 +314,13 @@ export default function Dashboard() {
                     })
                   }
                   showDeleteButton={showDeleteButtons}
+                  onWeightPreferenceChange={(exerciseId, newPreference) =>
+                    handleWeightPreferenceChange(
+                      workout.id,
+                      exerciseId,
+                      newPreference
+                    )
+                  }
                 />
               ))}
             </div>
