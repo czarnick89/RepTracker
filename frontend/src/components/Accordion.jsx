@@ -13,7 +13,7 @@ export default function Accordion({ title, children }) {
   };
 
   return (
-    <div className="border rounded mb-2">
+    <div className="border rounded mb-2 w-[100%] max-w-[4xl] mx-auto">
       <div
         role="button"
         tabIndex={0}
@@ -25,9 +25,7 @@ export default function Accordion({ title, children }) {
         {title}
       </div>
       {open && (
-        <div className="p-4 bg-gray-800 text-white">
-          {children}
-        </div>
+        <div className="p-4 bg-gray-800 text-white w-full">{children}</div>
       )}
     </div>
   );

@@ -76,10 +76,16 @@ class SetViewSet(viewsets.ModelViewSet):
     serializer_class = SetSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        return Set.objects.filter(exercise__workout__user=self.request.user)
+
 class ExerciseViewSet(viewsets.ModelViewSet):
     queryset = Exercise.objects.all()
     serializer_class = ExerciseSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Exercise.objects.filter(workout__user=self.request.user)
 
 class WorkoutViewSet(viewsets.ModelViewSet):
     queryset = Workout.objects.all()
