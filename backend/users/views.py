@@ -1,7 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status as s
-from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .serializers import UserRegisterSerializer, UserProfileSerializer, MyTokenObtainPairSerializer
 from django.core.mail import send_mail
@@ -12,12 +11,10 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from rest_framework.throttling import ScopedRateThrottle
-from .throttles import LoginThrottle
 from django.shortcuts import redirect
-from django.http import JsonResponse
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -74,6 +71,10 @@ class MyTokenObtainPairView(TokenObtainPairView):  # login
 
         refresh = serializer.validated_data['refresh']
         access = serializer.validated_data['access']
+
+        user = serializer.user  
+        user.last_login = timezone.now()  
+        user.save(update_fields=['last_login']) 
 
         response = Response({"detail": "Login successful"}, status=s.HTTP_200_OK)
 

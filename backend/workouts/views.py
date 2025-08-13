@@ -3,7 +3,7 @@ from rest_framework.exceptions import PermissionDenied
 from .models import Set, Exercise, Workout, TemplateSet, TemplateExercise, TemplateWorkout
 from .serializers import SetSerializer, ExerciseSerializer, WorkoutSerializer, TemplateSetSerializer, TemplateExerciseSerializer, TemplateWorkoutSerializer
 from rest_framework.generics import get_object_or_404
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 from django.db.models import Prefetch
 import requests
@@ -16,6 +16,7 @@ from google_auth_oauthlib.flow import Flow
 from datetime import timezone, timedelta, datetime
 from .google_calendar_utils import get_google_calendar_service
 from django.contrib.auth import get_user_model
+from .throttles import ExerciseInfoThrottle
 import logging
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,9 @@ User = get_user_model()
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
+@throttle_classes([ExerciseInfoThrottle])
 def exercise_by_name_proxy(request):
+
     name = request.query_params.get('name')
     if not name:
         return Response({"detail": "Missing 'name' parameter"}, status=s.HTTP_400_BAD_REQUEST)
@@ -43,6 +46,7 @@ def exercise_by_name_proxy(request):
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
+@throttle_classes([ExerciseInfoThrottle])
 def exercise_gif_proxy(request):
 
     #permission_classes = [permissions.IsAuthenticated] # for some reason you cant do this in a function body
