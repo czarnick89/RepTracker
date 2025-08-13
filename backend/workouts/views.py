@@ -16,6 +16,8 @@ from google_auth_oauthlib.flow import Flow
 from datetime import timezone, timedelta, datetime
 from .google_calendar_utils import get_google_calendar_service
 from django.contrib.auth import get_user_model
+import logging
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -293,13 +295,26 @@ def add_workout_to_calendar(request):
 
     return Response({"detail": "Event created", "event_id": created_event.get('id')})
 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+import logging
+from .google_calendar_utils import get_google_calendar_service
+
+logger = logging.getLogger(__name__)
+
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def google_calendar_status(request):
     user = request.user
-    connected = bool(
-        user.google_access_token and
-        user.google_refresh_token and
-        user.google_token_expiry
-    )
-    return Response({"connected": connected})
+
+    # Attempt to get a valid Google Calendar service
+    service = get_google_calendar_service(user)
+
+    connected = service is not None
+
+    # Force no caching on frontend
+    response = Response({"connected": connected})
+    response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
+

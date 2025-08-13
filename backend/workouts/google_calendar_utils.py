@@ -20,7 +20,6 @@ def get_google_calendar_service(user):
     if timezone.is_naive(expiry):
         expiry = timezone.make_aware(expiry, dt_timezone.utc)
 
-    # Convert to UTC timezone to normalize, then make naive by stripping tzinfo
     expiry = expiry.astimezone(dt_timezone.utc).replace(tzinfo=None)
 
     creds = Credentials(
@@ -29,23 +28,40 @@ def get_google_calendar_service(user):
         token_uri="https://oauth2.googleapis.com/token",
         client_id=settings.GOOGLE_CLIENT_ID,
         client_secret=settings.GOOGLE_CLIENT_SECRET,
-        expiry=expiry,  # <-- naive UTC datetime here
+        expiry=expiry,
     )
 
-    logger.debug(f"Credentials expiry: {creds.expiry} (naive? {timezone.is_naive(creds.expiry)})")
-
-    if creds.expired and creds.refresh_token:
-        try:
-            creds.refresh(Request())
-            user.google_access_token = creds.token
-            user.google_token_expiry = creds.expiry
+    # Refresh token if expired
+    if creds.expired:
+        if creds.refresh_token:
+            try:
+                creds.refresh(Request())
+                user.google_access_token = creds.token
+                user.google_token_expiry = creds.expiry
+                user.save()
+            except Exception as e:
+                logger.warning(f"Failed to refresh Google token for user {user.id}: {e}")
+                user.google_access_token = None
+                user.google_refresh_token = None
+                user.google_token_expiry = None
+                user.save()
+                return None
+        else:
+            user.google_access_token = None
+            user.google_refresh_token = None
+            user.google_token_expiry = None
             user.save()
-        except Exception as e:
-            logger.error(f"Failed to refresh Google token for user {user.id}: {e}")
             return None
 
-    if creds.expired and not creds.refresh_token:
+    try:
+        service = build("calendar", "v3", credentials=creds)
+        # Minimal request to validate token
+        service.calendarList().list(maxResults=1).execute()
+        return service
+    except Exception as e:
+        logger.warning(f"Google token invalid or revoked for user {user.id}: {e}")
+        user.google_access_token = None
+        user.google_refresh_token = None
+        user.google_token_expiry = None
+        user.save()
         return None
-
-    service = build('calendar', 'v3', credentials=creds)
-    return service

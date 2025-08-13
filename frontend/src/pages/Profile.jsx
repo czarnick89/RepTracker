@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import axios from "axios"; // can we convert this to my api for google call?
 import api from "../api/axiosRefreshInterceptor";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -40,12 +39,20 @@ export default function Profile() {
     };
 
     try {
-      await axios.post(
-        "https://127.0.0.1:8000/api/v1/workouts/google-calendar/create-event/",
+      await api.post(
+        "/api/v1/workouts/google-calendar/create-event/",
         payload,
         { withCredentials: true }
       );
       alert("Workout scheduled!");
+      setFormData({
+        title: "",
+        description: "",
+        date: "",
+        startTime: "",
+        endTime: "",
+        location: "",
+      });
     } catch (err) {
       console.error(err);
       alert("Error scheduling workout");
@@ -55,21 +62,27 @@ export default function Profile() {
   useEffect(() => {
     if (loading || !user) return;
 
-    api
-      .get("https://127.0.0.1:8000/api/v1/workouts/google-calendar/status/", {
-        withCredentials: true,
-      })
-      .then((res) => setGoogleCalendarConnected(res.data.connected))
-      .catch(() => setGoogleCalendarConnected(false));
+    const fetchStatus = async () => {
+      try {
+        const res = await api.get("/api/v1/workouts/google-calendar/status/", {
+          withCredentials: true,
+          headers: { "Cache-Control": "no-cache" }, // prevent caching
+        });
+        setGoogleCalendarConnected(res.data.connected);
+      } catch (err) {
+        console.error("Failed to fetch Google Calendar status:", err);
+        setGoogleCalendarConnected(false); // fallback to false on error
+      }
+    };
+
+    fetchStatus();
   }, [loading, user]);
 
   useEffect(() => {
-    if (loading) return; // Still loading, do nothing
-    if (!user) return; // No user, do nothing and avoid request
+    if (loading || !user) return;
 
-    // Only here if user is authenticated and loading is done
     api
-      .get("https://127.0.0.1:8000/api/v1/users/profile/", {
+      .get("/api/v1/users/profile/", {
         withCredentials: true,
         headers: { "Cache-Control": "no-cache" },
       })
@@ -79,25 +92,28 @@ export default function Profile() {
 
   if (loading) return <p>Checking authentication...</p>;
 
-  if (!user) return null; // Or maybe <Navigate to="/login" /> if you want direct redirect here
+  if (!user) return null;
 
   if (error) return <p className="text-red-500">{error}</p>;
 
   if (!profile) return <p>Loading profile...</p>;
 
   return (
-    <div className="bg-slate-900 min-h-screen flex flex-col md:flex-row items-center justify-center gap-10 px-6 py-12">
+    <div className="bg-slate-900 min-h-screen flex flex-col md:flex-row items-center justify-center gap-10 px-6 py-12 pt-5">
       <form
         onSubmit={handleSubmit}
         className="bg-white rounded-lg shadow-md max-w-md w-full p-6 space-y-5"
       >
+        <h2 className="text-2xl font-bold text-slate-800 text-center w-full border-b border-gray-300 pb-3">
+          Workout Scheduler
+        </h2>
         <input
           type="text"
           name="title"
           placeholder="Workout Title"
           value={formData.title}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+          className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-black"
           required
         />
         {/* <textarea
@@ -105,7 +121,7 @@ export default function Profile() {
         placeholder="Description"
         value={formData.description}
         onChange={handleChange}
-        className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition resize-none"
+        className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition resize-none text-black"
         rows={4}
       /> */}
         <input
@@ -113,7 +129,7 @@ export default function Profile() {
           name="date"
           value={formData.date}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+          className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-black"
           required
         />
         <div className="flex gap-4">
@@ -122,7 +138,7 @@ export default function Profile() {
             name="startTime"
             value={formData.startTime}
             onChange={handleChange}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-black"
             required
           />
           <input
@@ -130,7 +146,7 @@ export default function Profile() {
             name="endTime"
             value={formData.endTime}
             onChange={handleChange}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-black"
             required
           />
         </div>
@@ -140,7 +156,7 @@ export default function Profile() {
           placeholder="Location"
           value={formData.location}
           onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+          className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-black"
         />
         <button
           type="submit"
@@ -160,7 +176,7 @@ export default function Profile() {
               window.location.href =
                 "https://127.0.0.1:8000/api/v1/workouts/google-calendar/auth-start/";
             }}
-            className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition shadow-md"
+            className="w-full bg-blue-600 text-black py-3 rounded-md hover:bg-blue-700 transition shadow-md"
           >
             Connect Google Calendar
           </button>
@@ -169,6 +185,7 @@ export default function Profile() {
             Google Calendar connected <span aria-label="checkmark">✅</span>
           </p>
         )}
+
         <div className="w-full space-y-4 text-slate-700">
           <p>
             <span className="font-semibold">Username:</span> {profile.username}
@@ -177,13 +194,6 @@ export default function Profile() {
             <span className="font-semibold">Email:</span> {profile.email}
           </p>
         </div>
-
-        <button
-          onClick={() => (window.location.href = "/logout")}
-          className="w-full bg-red-600 text-white py-3 rounded-md hover:bg-red-700 transition shadow-md"
-        >
-          Logout
-        </button>
       </aside>
     </div>
   );
