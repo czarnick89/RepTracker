@@ -323,3 +323,30 @@ def google_calendar_status(request):
     response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
 
+import requests
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def google_calendar_disconnect(request):
+    user = request.user
+
+    # Revoke the token with Google if it exists
+    if user.google_access_token:
+        try:
+            requests.post(
+                'https://oauth2.googleapis.com/revoke',
+                params={'token': user.google_access_token},
+                headers={'content-type': 'application/x-www-form-urlencoded'}
+            )
+        except Exception as e:
+            # Log but continue to clear local tokens
+            logger.error(f"Failed to revoke Google token for user {user.id}: {e}")
+
+    # Clear local tokens
+    user.google_access_token = None
+    user.google_refresh_token = None
+    user.google_token_expiry = None
+    user.save()
+
+    return Response({"message": "Google Calendar disconnected"})
+
