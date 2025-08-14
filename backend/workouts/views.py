@@ -43,17 +43,17 @@ User = get_user_model()
 
 class ExerciseByNameProxy(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    throttle_classes = [ExerciseInfoThrottle]  # Replace with ExerciseInfoThrottle if needed
+    throttle_classes = [ExerciseInfoThrottle]
 
     def get(self, request):
         name = request.query_params.get("name")
         if not name:
             return Response({"detail": "Missing 'name' parameter"}, status=s.HTTP_400_BAD_REQUEST)
         
-        url = f"https://exercisedb.p.rapidapi.com/exercises/name/{name}"
+        url = f"{settings.EXERCISE_DB_BASE_URL}/exercises/name/{name}"
         headers = {
             "X-RapidAPI-Key": config("RAPIDAPI_KEY"),
-            "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
+            "X-RapidAPI-Host": settings.EXERCISE_DB_HOST,
         }
         resp = requests.get(url, headers=headers)
         if resp.status_code != 200:
@@ -62,7 +62,7 @@ class ExerciseByNameProxy(APIView):
 
 class ExerciseGifProxy(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    throttle_classes = [ExerciseInfoThrottle]  # Replace with ExerciseInfoThrottle if needed
+    throttle_classes = [ExerciseInfoThrottle] 
 
     def get(self, request):
         exercise_db_id = request.query_params.get("exerciseId")
@@ -70,18 +70,17 @@ class ExerciseGifProxy(APIView):
         if not exercise_db_id:
             return HttpResponse("Missing 'exerciseId' parameter", status=400)
         
-        url = "https://exercisedb.p.rapidapi.com/image"
+        url = f"{settings.EXERCISE_DB_BASE_URL}/image"
         params = {"exerciseId": exercise_db_id, "resolution": resolution}
         headers = {
             "X-RapidAPI-Key": config("RAPIDAPI_KEY"),
-            "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
+            "X-RapidAPI-Host": settings.EXERCISE_DB_HOST,
         }
         resp = requests.get(url, headers=headers, params=params)
         if resp.status_code != 200:
             return HttpResponse("Image not found", status=resp.status_code)
         return HttpResponse(resp.content, content_type=resp.headers.get("Content-Type"))
 
-# Create your views here.
 class SetViewSet(viewsets.ModelViewSet):
     queryset = Set.objects.all()
     serializer_class = SetSerializer
@@ -224,18 +223,18 @@ class GoogleCalendarAuthStart(APIView):
                 "web": {
                     "client_id": settings.GOOGLE_CLIENT_ID,
                     "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "auth_uri": settings.GOOGLE_AUTH_URI,
+                    "token_uri": settings.GOOGLE_TOKEN_URI,
                     "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
                     "scopes": [
-                        "https://www.googleapis.com/auth/calendar.events",
-                        "https://www.googleapis.com/auth/calendar.readonly",
+                        config('GOOGLE_API_CALENDAR_EVENTS'),
+                        config('GOOGLE_API_CALENDAR_READONLY'),
                     ],
                 }
             },
             scopes=[
-                "https://www.googleapis.com/auth/calendar.events",
-                "https://www.googleapis.com/auth/calendar.readonly",
+                config('GOOGLE_API_CALENDAR_EVENTS'),
+                config('GOOGLE_API_CALENDAR_READONLY'),
             ],
             redirect_uri=settings.GOOGLE_REDIRECT_URI,
         )
@@ -268,18 +267,18 @@ class GoogleCalendarOAuth2Callback(APIView):
                 "web": {
                     "client_id": settings.GOOGLE_CLIENT_ID,
                     "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "auth_uri": settings.GOOGLE_AUTH_URI,
+                    "token_uri": settings.GOOGLE_TOKEN_URI,
                     "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
                     "scopes": [
-                        "https://www.googleapis.com/auth/calendar.events",
-                        "https://www.googleapis.com/auth/calendar.readonly",
+                        config('GOOGLE_API_CALENDAR_EVENTS'),
+                        config('GOOGLE_API_CALENDAR_READONLY'),
                     ],
                 }
             },
             scopes=[
-                "https://www.googleapis.com/auth/calendar.events",
-                "https://www.googleapis.com/auth/calendar.readonly",
+                config('GOOGLE_API_CALENDAR_EVENTS'),
+                config('GOOGLE_API_CALENDAR_READONLY'),
             ],
             state=state,
             redirect_uri=settings.GOOGLE_REDIRECT_URI,
@@ -296,7 +295,7 @@ class GoogleCalendarOAuth2Callback(APIView):
         user.google_token_expiry = expiry
         user.save()
 
-        return redirect("https://127.0.0.1:5173/profile")
+        return redirect(settings.FRONTEND_PROFILE_URL)
 
 class AddWorkoutToCalendar(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -335,7 +334,7 @@ class GoogleCalendarDisconnect(APIView):
         if user.google_access_token:
             try:
                 requests.post(
-                    "https://oauth2.googleapis.com/revoke",
+                    settings.GOOGLE_REVOKE_URI,
                     params={"token": user.google_access_token},
                     headers={"content-type": "application/x-www-form-urlencoded"},
                 )

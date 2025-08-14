@@ -22,7 +22,7 @@ export default function Register() {
 
     try {
       const response = await api.post(
-        "https://localhost:8000/api/v1/users/register/",
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/register/`,
         {
           email,
           password,

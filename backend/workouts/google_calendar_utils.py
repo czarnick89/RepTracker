@@ -27,7 +27,7 @@ def get_google_calendar_service(user):
     creds = Credentials(
         token=user.google_access_token,
         refresh_token=user.google_refresh_token,
-        token_uri="https://oauth2.googleapis.com/token",
+        token_uri=settings.GOOGLE_TOKEN_URI,
         client_id=settings.GOOGLE_CLIENT_ID,
         client_secret=settings.GOOGLE_CLIENT_SECRET,
         expiry=expiry,

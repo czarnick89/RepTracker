@@ -25,13 +25,13 @@ export default function Login() {
 
     try {
       await api.post(
-        "https://127.0.0.1:8000/api/v1/users/login/",
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/login/`,
         { email, password },
         { withCredentials: true }
       );
 
       const res = await api.get(
-        "https://127.0.0.1:8000/api/v1/users/profile/",
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/profile/`,
         { withCredentials: true }
       );
 

@@ -25,5 +25,5 @@ def test_user_register(api_client):
     assert len(mail.outbox) == 1
     email = mail.outbox[0]
     assert "Verify your email" in email.subject
-    assert "http://" in email.body  # contains verification link
+    assert "https://" in email.body  # contains verification link
     assert user.email in email.to

@@ -85,7 +85,7 @@ export default function ExerciseCard({
 
     api
       .patch(
-        `https://127.0.0.1:8000/api/v1/workouts/sets/${setId}/`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/${setId}/`,
         { reps: Number(newReps), weight: normalizeWeight(newWeight) },
         { withCredentials: true }
       )
@@ -95,7 +95,7 @@ export default function ExerciseCard({
   const createNewSet = async (reps, weight) => {
     try {
       const res = await api.post(
-        `https://127.0.0.1:8000/api/v1/workouts/sets/`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/`,
         {
           exercise: exercise.id,
           reps: Number(reps),
@@ -119,7 +119,7 @@ export default function ExerciseCard({
     }
 
     api
-      .delete(`https://127.0.0.1:8000/api/v1/workouts/sets/${setId}/`, {
+      .delete(`${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/${setId}/`, {
         withCredentials: true,
       })
       .then(() => {

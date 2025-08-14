@@ -169,7 +169,7 @@ export default function Profile() {
           <button
             onClick={() =>
               (window.location.href =
-                "https://127.0.0.1:8000/api/v1/workouts/google-calendar/auth-start/")
+                `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/google-calendar/auth-start/`)
             }
             className="w-full bg-blue-600 text-black py-3 rounded-md hover:bg-blue-700 transition shadow-md"
           >

@@ -22,7 +22,7 @@ export default function ResetPassword() {
 
     try {
       const res = await api.post(
-        `https://127.0.0.1:8000/api/v1/users/password-reset-confirm/${uid}/${token}/`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/password-reset-confirm/${uid}/${token}/`,
         { password },
         {
           headers: { 'Content-Type': 'application/json' },
