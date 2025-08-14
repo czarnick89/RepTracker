@@ -7,13 +7,11 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [registered, setRegistered] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
@@ -29,10 +27,6 @@ export default function Register() {
         }
       );
 
-      console.log("Registration successful:", response.data);
-      setSuccess(
-        "Registration successful! Check your email to verify your account."
-      );
       setRegistered(true);
       setEmail("");
       setPassword("");
@@ -143,6 +137,5 @@ export default function Register() {
     </div>
   </div>
 );
-
 
 }

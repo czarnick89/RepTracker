@@ -1,3 +1,5 @@
+// list of exercises the autofiltering drop downs use
+
 export const exerciseNames = [
   "Flat dumbbell bench press",
   "Dumbbell bench press",

@@ -2,6 +2,7 @@ import { useState } from "react";
 import api from "../api/axiosRefreshInterceptor";
 import { performLogout } from "../utils/logout";
 
+// Form to allow authenticated user to change their password
 export default function ChangePasswordForm() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -9,6 +10,7 @@ export default function ChangePasswordForm() {
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState(null);
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -21,6 +23,7 @@ export default function ChangePasswordForm() {
     }
 
     try {
+      // Call backend api to change password
       const res = await api.post("/api/v1/users/change-password/", {
         old_password: oldPassword,
         new_password: newPassword,
@@ -34,6 +37,7 @@ export default function ChangePasswordForm() {
       setConfirmPassword("");
     } catch (err) {
       if (err.response?.status === 401) {
+        // If response is a 401 force logout
         performLogout(
           () => {},
           () => {
