@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-// import axios from "axios";
 import api from '../api/axiosRefreshInterceptor';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState(null); // "success" | "error"
+  const [status, setStatus] = useState(null); 
   const [message, setMessage] = useState("");
 
   const handleSubmit = async (e) => {

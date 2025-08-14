@@ -1,10 +1,13 @@
-from rest_framework import serializers
+# Django imports
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import update_last_login
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
+
+# Third-party imports
+from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from django.contrib.auth.models import update_last_login
 from rest_framework_simplejwt.settings import api_settings
 
 User = get_user_model()
@@ -56,5 +59,5 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name'] # add field here if updates needed
+        fields = ['id', 'email', 'first_name', 'last_name'] 
         read_only_fields = ['id', 'email']

@@ -1,12 +1,14 @@
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from django.utils import timezone
-from django.conf import settings
-from google.auth.transport.requests import Request
-import logging
+# Standard library
 from datetime import timezone as dt_timezone
 
-logger = logging.getLogger(__name__)
+# Django imports
+from django.conf import settings
+from django.utils import timezone
+
+# Third-party / Google API imports
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
 
 def get_google_calendar_service(user):
     if not (user.google_access_token and user.google_refresh_token and user.google_token_expiry):
@@ -39,8 +41,7 @@ def get_google_calendar_service(user):
                 user.google_access_token = creds.token
                 user.google_token_expiry = creds.expiry
                 user.save()
-            except Exception as e:
-                logger.warning(f"Failed to refresh Google token for user {user.id}: {e}")
+            except Exception:
                 user.google_access_token = None
                 user.google_refresh_token = None
                 user.google_token_expiry = None
@@ -58,8 +59,7 @@ def get_google_calendar_service(user):
         # Minimal request to validate token
         service.calendarList().list(maxResults=1).execute()
         return service
-    except Exception as e:
-        logger.warning(f"Google token invalid or revoked for user {user.id}: {e}")
+    except Exception:
         user.google_access_token = None
         user.google_refresh_token = None
         user.google_token_expiry = None

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-// import axios from 'axios';
 import api from '../api/axiosRefreshInterceptor';
 
 export default function ResetPassword() {

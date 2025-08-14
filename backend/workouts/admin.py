@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import Workout, Exercise, Set
 
-class SetInline(admin.TabularInline):  # could also use StackedInline
+class SetInline(admin.TabularInline): 
     model = Set
     extra = 1  # number of empty forms to show
 

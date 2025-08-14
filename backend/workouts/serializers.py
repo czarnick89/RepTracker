@@ -1,8 +1,19 @@
+# Third-party imports
 from rest_framework import serializers
-from .models import Set, Exercise, Workout, TemplateSet, TemplateExercise, TemplateWorkout
+
+# Django imports
 from django.db import models
 from django.db.models import Max
-from django.core.exceptions import ValidationError as DjangoValidationError
+
+# Local app imports
+from .models import (
+    Set,
+    Exercise,
+    Workout,
+    TemplateSet,
+    TemplateExercise,
+    TemplateWorkout,
+)
 
 class SetSerializer(serializers.ModelSerializer):
     set_number = serializers.IntegerField(required=False)

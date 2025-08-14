@@ -1,20 +1,29 @@
+# Django imports
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.sites.shortcuts import get_current_site
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.shortcuts import redirect
+from django.utils import timezone
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+
+# Third-party imports
+from rest_framework import status as s
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status as s
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .serializers import UserRegisterSerializer, UserProfileSerializer, MyTokenObtainPairSerializer
-from django.core.mail import send_mail
-from django.contrib.sites.shortcuts import get_current_site
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes
-from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth import get_user_model, authenticate
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
-from django.shortcuts import redirect
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from django.utils import timezone
+
+# Local imports
+from .serializers import (
+    UserRegisterSerializer,
+    UserProfileSerializer,
+    MyTokenObtainPairSerializer,
+)
 
 User = get_user_model()
 

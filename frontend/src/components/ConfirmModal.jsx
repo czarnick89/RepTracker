@@ -1,4 +1,3 @@
-import React from "react";
 
 export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }) {
   if (!isOpen) return null;

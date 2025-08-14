@@ -17,11 +17,11 @@ export default function Dashboard() {
   const [showDeleteButtons, setShowDeleteButtons] = useState(false);
 
   const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(true); // tracks if there are more workouts to load
-  const PAGE_SIZE = 10; // same as backend default limit
+  const [hasMore, setHasMore] = useState(true); 
+  const PAGE_SIZE = 10; 
 
   useEffect(() => {
-    fetchWorkouts(true); // reset on first load
+    fetchWorkouts(true); 
   }, []);
 
   const fetchWorkouts = async (reset = false) => {
@@ -200,7 +200,6 @@ export default function Dashboard() {
     newPreference
   ) => {
     try {
-      // Optimistically update frontend state
       setExercisesByWorkout((prev) => {
         const updatedExercises = prev[workoutId].map((ex) =>
           ex.id === exerciseId
@@ -210,7 +209,6 @@ export default function Dashboard() {
         return { ...prev, [workoutId]: updatedExercises };
       });
 
-      // Send PATCH request to backend
       await api.patch(
         `/api/v1/workouts/exercises/${exerciseId}/`,
         { weight_change_preference: newPreference },
@@ -218,7 +216,7 @@ export default function Dashboard() {
       );
     } catch (err) {
       console.error("Failed to update weight preference:", err);
-      // Optionally revert frontend state here if you want
+      // Optionally revert frontend state here 
     }
   };
 
