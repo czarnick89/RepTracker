@@ -26,11 +26,27 @@ from .serializers import (
     MyTokenObtainPairSerializer,
 )
 
+# ---------------------------
+# Model reference
+# ---------------------------
 User = get_user_model()
 
-# Create your views here.
+# ===========================
+# User Registration and Email Verification
+# ===========================
 class RegisterView(APIView):
+    """
+    Registers a new user and sends an email verification link.
     
+    POST data:
+    - email
+    - password
+    - (other fields handled by UserRegisterSerializer)
+    
+    Side effects:
+    - Creates inactive user in DB
+    - Sends verification email with UID + token link
+    """
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -49,29 +65,38 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=s.HTTP_400_BAD_REQUEST)
     
 class VerifyEmailView(APIView):
+    """
+    Handles verification link clicks from the email.
     
+    GET parameters:
+    - uidb64: Base64-encoded user ID
+    - token: email verification token
+    
+    Side effect:
+    - Activates user account if token is valid
+    - Redirects to frontend login page with query param
+    """
     def get(self, request, uidb64, token):
-        print(f"UID64: {uidb64}")
-        print(f"Token: {token}")
         try:
             uid = urlsafe_base64_decode(uidb64).decode()
-            print(f"Decoded UID: {uid}")
             user = User.objects.get(pk=uid)
-        except Exception as e:
-            print(f"Error decoding or finding user: {e}")
+        except (User.DoesNotExist, ValueError, TypeError, OverflowError):
             return redirect(f"{settings.FRONTEND_URL}/register/?verified=invalid")
-
-        print(f"User before verification: {user}, is_active={user.is_active}")
         
         if default_token_generator.check_token(user, token):
             user.is_active = True
             user.save()
-            print(f"User after save: is_active={user.is_active}")
             return redirect(f"{settings.FRONTEND_URL}/login/?verified=true")
 
-        return redirect(f"{settings.FRONTEND_URL}/login/?verified=expired") # need to change to resend verification?
+        return redirect(f"{settings.FRONTEND_URL}/login/?verified=expired") 
 
-class MyTokenObtainPairView(TokenObtainPairView):  # login
+# ===========================
+# JWT Authentication (Login / Logout / Refresh)
+# ===========================
+class MyTokenObtainPairView(TokenObtainPairView):  
+    """
+    Handles user login and sets HttpOnly JWT cookies.
+    """
     serializer_class = MyTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
@@ -87,13 +112,12 @@ class MyTokenObtainPairView(TokenObtainPairView):  # login
 
         response = Response({"detail": "Login successful"}, status=s.HTTP_200_OK)
 
-        # Set HttpOnly access token cookie
         response.set_cookie(
             key='access_token',
             value=access,
             httponly=True,
-            secure=True,        # <-- must be True for HTTPS
-            samesite='None',    # <-- None is required for cross-site cookies with Secure flag
+            secure=True,    
+            samesite='None',    
             max_age=15 * 60,
             path='/',
         )
@@ -102,8 +126,8 @@ class MyTokenObtainPairView(TokenObtainPairView):  # login
             key='refresh_token',
             value=refresh,
             httponly=True,
-            secure=True,        # <-- must be True for HTTPS
-            samesite='None',    # <-- None required for cross-site with Secure
+            secure=True,       
+            samesite='None',   
             max_age=24 * 60 * 60,
             path='/api/v1/users/',
         )
@@ -111,7 +135,10 @@ class MyTokenObtainPairView(TokenObtainPairView):  # login
         return response
     
 class LogoutView(APIView):
-    permission_classes = [AllowAny]  # Allow access without authentication
+    """
+    Logs out a user by blacklisting refresh token and deleting cookies.
+    """
+    permission_classes = [AllowAny]  
 
     def post(self, request):
         refresh_token = request.COOKIES.get("refresh_token")
@@ -121,15 +148,67 @@ class LogoutView(APIView):
                 token = RefreshToken(refresh_token)
                 token.blacklist()
             except Exception:
-                pass  # Optionally log here
+                pass  
 
         response = Response({"detail": "Logged out successfully."}, status=s.HTTP_200_OK)
         response.delete_cookie("access_token", path='/')
         response.delete_cookie("refresh_token", path='/api/v1/users/')
         return response
-    
-class PasswordResetRequestView(APIView):
 
+class CookieTokenRefreshView(TokenRefreshView):
+    """
+    Refresh JWT access token using HttpOnly refresh token cookie.
+    """
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh_token')
+
+        if refresh_token is None:
+            return Response({"error": "No refresh token cookie found."}, status=s.HTTP_401_UNAUTHORIZED)
+
+        data = {'refresh': refresh_token}
+        serializer = self.get_serializer(data=data)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception:
+            return Response({"error": "Invalid refresh token."}, status=s.HTTP_401_UNAUTHORIZED)
+
+        access_token = serializer.validated_data['access']
+        new_refresh_token = serializer.validated_data.get('refresh', None) 
+
+        response = Response({"detail": "Token refreshed successfully."}, status=s.HTTP_200_OK)
+
+        response.set_cookie(
+            key='access_token',
+            value=access_token,
+            httponly=True,
+            secure=True,  
+            samesite='None',  
+            max_age=15 * 60,  # 15 minutes
+            path='/',
+        )
+
+        # Rotate refresh token cookie if provided
+        if new_refresh_token:
+            response.set_cookie(
+                key='refresh_token',
+                value=new_refresh_token,
+                httponly=True,
+                secure=True,  
+                samesite='None',
+                max_age=24 * 60 * 60,  # 1 day
+                path='/api/v1/users/',
+            )
+
+        return response
+
+# ===========================
+# Password Reset / Change
+# ===========================
+class PasswordResetRequestView(APIView):
+    """
+    Sends a password reset email if the user exists.
+    """
     def post(self, request):
         email = request.data.get('email')
         if not email:
@@ -158,12 +237,14 @@ class PasswordResetRequestView(APIView):
         return Response({"detail": "If that email is registered, a reset link has been sent."})
     
 class PasswordResetConfirmView(APIView):
-
+    """
+    Confirms password reset using token, validates new password, and sets it.
+    """
     def post(self, request, uidb64, token):
         try:
             uid = urlsafe_base64_decode(uidb64).decode()
             user = User.objects.get(pk=uid)
-        except (User.DoesNotExist, ValueError, TypeError, OverflowError):
+        except (User.DoesNotExist, ValueError, TypeError, OverflowError): 
             return Response({"error": "Invalid link."}, status=s.HTTP_400_BAD_REQUEST)
 
         if not default_token_generator.check_token(user, token):
@@ -184,7 +265,9 @@ class PasswordResetConfirmView(APIView):
         return Response({"detail": "Password has been reset successfully."}, status=s.HTTP_200_OK)
     
 class ChangePasswordView(APIView):
-
+    """
+    Authenticated user can change password by providing old and new passwords.
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -206,13 +289,17 @@ class ChangePasswordView(APIView):
         user.set_password(new_password)
         user.save()
         return Response({"detail": "Password changed successfully."}, status=s.HTTP_200_OK)
-    
-class UserProfileView(APIView):
 
+# ===========================
+# User Profile
+# ===========================    
+class UserProfileView(APIView):
+    """
+    Retrieve or update authenticated user's profile.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        print(f"Profile requested by: {request.user}")
         serializer = UserProfileSerializer(request.user)
         return Response(serializer.data)
 
@@ -222,8 +309,14 @@ class UserProfileView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=s.HTTP_400_BAD_REQUEST)
-    
+
+# ===========================
+# Resend Verification Email - CURRENTLY UNUSED?
+# ===========================
 class ResendVerificationEmailView(APIView):
+    """
+    Resends email verification link to inactive users.
+    """
     def post(self, request):
         email = request.data.get("email", "").strip()
         if not email:
@@ -236,9 +329,6 @@ class ResendVerificationEmailView(APIView):
 
         if user.is_active:
             return Response({"detail": "This account is already verified."}, status=s.HTTP_400_BAD_REQUEST)
-
-        # Generate token and send email again
-        from django.contrib.auth.tokens import default_token_generator
 
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -254,49 +344,5 @@ class ResendVerificationEmailView(APIView):
 
         return Response({"detail": "Verification email resent. Check your inbox."}, status=s.HTTP_200_OK)
     
-class CookieTokenRefreshView(TokenRefreshView):
 
-    def post(self, request, *args, **kwargs):
-        refresh_token = request.COOKIES.get('refresh_token')
-
-        if refresh_token is None:
-            return Response({"error": "No refresh token cookie found."}, status=s.HTTP_401_UNAUTHORIZED)
-
-        data = {'refresh': refresh_token}
-        serializer = self.get_serializer(data=data)
-
-        try:
-            serializer.is_valid(raise_exception=True)
-        except Exception:
-            return Response({"error": "Invalid refresh token."}, status=s.HTTP_401_UNAUTHORIZED)
-
-        access_token = serializer.validated_data['access']
-        new_refresh_token = serializer.validated_data.get('refresh', None)  # may be present if rotation enabled
-
-        response = Response({"detail": "Token refreshed successfully."}, status=s.HTTP_200_OK)
-
-        # Set new access token cookie
-        response.set_cookie(
-            key='access_token',
-            value=access_token,
-            httponly=True,
-            secure=True,  # Change to True in production with HTTPS
-            samesite='None',  # Allow cross-site cookie for frontend CORS
-            max_age=15 * 60,  # 15 minutes
-            path='/',
-        )
-
-        # Rotate refresh token cookie if provided
-        if new_refresh_token:
-            response.set_cookie(
-                key='refresh_token',
-                value=new_refresh_token,
-                httponly=True,
-                secure=True,  # Change to True in production with HTTPS
-                samesite='None',
-                max_age=24 * 60 * 60,  # 1 day
-                path='/api/v1/users/',
-            )
-
-        return response
 
