@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 
-# Create your models here.
 class Workout(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -68,7 +67,7 @@ class Set(models.Model):
     )
     set_number = models.PositiveIntegerField()
     reps = models.PositiveIntegerField()
-    weight = models.DecimalField(max_digits=6, decimal_places=2)  # e.g. 9999.99 max
+    weight = models.DecimalField(max_digits=6, decimal_places=2) 
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

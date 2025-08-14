@@ -3,21 +3,21 @@ from decouple import config
 from datetime import timedelta
 from corsheaders.defaults import default_headers
 
+# ===============================
+# BASE / PATHS / SECRET
+# ===============================
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 SECRET_KEY = config('SECRET_KEY')
-
 DEBUG = config('DEBUG', default=False, cast=bool)
-
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
 FRONTEND_URL = config('FRONTEND_URL', default='https://localhost:5173')
 FRONTEND_PROFILE_URL = config('FRONTEND_PROFILE_URL', default=f'{FRONTEND_URL}/profile')
-
 BACKEND_URL = config('BACKEND_URL')
 
-# Application definition
-
+# ===============================
+# APPLICATIONS
+# ===============================
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -25,16 +25,21 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'sslserver',
     'django_extensions',
+
     'users',
     'workouts',
 ]
 
+# ===============================
+# MIDDLEWARE
+# ===============================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -46,6 +51,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# ===============================
+# URLS & TEMPLATES
+# ===============================
 ROOT_URLCONF = 'reptrack_backend.urls'
 
 TEMPLATES = [
@@ -65,8 +73,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'reptrack_backend.wsgi.application'
 
-# Database
-
+# ===============================
+# DATABASE
+# ===============================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -78,59 +87,25 @@ DATABASES = {
     }
 }
 
-# Password validation
+# ===============================
+# AUTHENTICATION
+# ===============================
+AUTH_USER_MODEL = 'users.User'
+AUTHENTICATION_BACKENDS = [
+    'users.backends.CaseInsensitiveEmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
-
-# Static files (CSS, JavaScript, Images)
-
-STATIC_URL = 'static/'
-
-# Default primary key field type
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-CSRF_TRUSTED_ORIGINS = config(
-    'CSRF_TRUSTED_ORIGINS',
-    default='https://127.0.0.1:5173'
-).split(',')
-
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ALLOWED_ORIGINS',
-    default='https://localhost:5173,https://127.0.0.1:5173'
-).split(',')
-
-CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOW_HEADERS = list(default_headers) + [
-    "cache-control",
-]
-
-AUTH_USER_MODEL = 'users.User'
-
+# ===============================
+# REST FRAMEWORK / JWT
+# ===============================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'users.authentication.JWTAuthenticationFromCookie',
@@ -156,13 +131,48 @@ SIMPLE_JWT = {
     'AUTH_COOKIE_REFRESH': 'refresh',
 }
 
-AUTHENTICATION_BACKENDS = [
-    'users.backends.CaseInsensitiveEmailBackend',
-    'django.contrib.auth.backends.ModelBackend',
-]
+# ===============================
+# CORS / CSRF
+# ===============================
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://127.0.0.1:5173'
+).split(',')
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # change for production
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='https://localhost:5173,https://127.0.0.1:5173'
+).split(',')
 
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list(default_headers) + ["cache-control"]
+
+# ===============================
+# INTERNATIONALIZATION
+# ===============================
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+# ===============================
+# STATIC FILES
+# ===============================
+STATIC_URL = 'static/'
+
+# ===============================
+# DEFAULT AUTO FIELD
+# ===============================
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ===============================
+# EMAIL
+# ===============================
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # change for production
+
+# ===============================
+# THIRD-PARTY API KEYS
+# ===============================
 EXERCISE_DB_BASE_URL = config('EXERCISE_DB_BASE_URL', default='https://exercisedb.p.rapidapi.com')
 EXERCISE_DB_HOST = config('EXERCISE_DB_HOST', default='exercisedb.p.rapidapi.com')
 
@@ -171,11 +181,14 @@ GOOGLE_CLIENT_SECRET = config('GOOGLE_SECRET')
 GOOGLE_REDIRECT_URI = config(
     'GOOGLE_REDIRECT_URI',
     default='https://127.0.0.1:8000/api/v1/workouts/google-calendar/oauth2callback'
-) 
+)
 GOOGLE_AUTH_URI = config('GOOGLE_AUTH_URI', default='https://accounts.google.com/o/oauth2/auth')
 GOOGLE_TOKEN_URI = config('GOOGLE_TOKEN_URI', default='https://oauth2.googleapis.com/token')
 GOOGLE_REVOKE_URI = config('GOOGLE_REVOKE_URI', default='https://oauth2.googleapis.com/revoke')
 
+# ===============================
+# SESSIONS & SECURITY
+# ===============================
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 SESSION_COOKIE_SECURE = True
@@ -187,4 +200,12 @@ CSRF_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds (default)
 
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = False 
+CSRF_COOKIE_HTTPONLY = False
+
+SECURE_SSL_REDIRECT = True
+SECURE_HSTS_SECONDS = 3600
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'

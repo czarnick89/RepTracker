@@ -13,6 +13,8 @@ from rest_framework_simplejwt.settings import api_settings
 User = get_user_model()
 
 class UserRegisterSerializer(serializers.ModelSerializer):
+    # Handles registration of a new user
+    # Password is write-only so it won't be returned in API responses
     password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
@@ -20,6 +22,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         fields = ['email', 'password']
 
     def validate_password(self, value):
+        # run djangos built in pw validators (see settings.py)
         try:
             validate_password(value, user=self.instance)
         except DjangoValidationError as e:
@@ -27,11 +30,13 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return value
     
     def validate_email(self, value):
+        #prevents duplicate emails by checking case insensitive
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError(_("A user with that email already exists."))
         return value
 
     def create(self, validated_data):
+        # Creates a new user with is_active=False (email verification required)
         user = User.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
@@ -40,11 +45,14 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    # Customizes JWT login behavior using email instead of username
     username_field = 'email'
 
     def validate(self, attrs):
+        # Performs inherited validate (email/pw combo, generates tokens)
         data = super().validate(attrs)
 
+        # Prevent login if email not verified
         if not self.user.is_active:
             raise serializers.ValidationError("Account not verified.")
 
@@ -54,6 +62,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data 
     
 class UserProfileSerializer(serializers.ModelSerializer):
+    # Used for retrieving and updating user profile info
     first_name = serializers.CharField(allow_blank=False)
     last_name = serializers.CharField(allow_blank=False)
 

@@ -41,7 +41,14 @@ from .throttles import ExerciseInfoThrottle
 
 User = get_user_model()
 
+# ------------------------------
+# Proxy views for external exerciseDB API
+# ------------------------------
 class ExerciseByNameProxy(APIView):
+    """
+    Proxies requests to the ExerciseDB API to fetch exercise data by name.
+    Applies rate limiting with ExerciseInfoThrottle.
+    """
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [ExerciseInfoThrottle]
 
@@ -61,6 +68,10 @@ class ExerciseByNameProxy(APIView):
         return Response(resp.json())
 
 class ExerciseGifProxy(APIView):
+    """
+    Proxies requests to ExerciseDB to fetch exercise GIFs/images.
+    Applies rate limiting with ExerciseInfoThrottle.
+    """
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [ExerciseInfoThrottle] 
 
@@ -81,15 +92,27 @@ class ExerciseGifProxy(APIView):
             return HttpResponse("Image not found", status=resp.status_code)
         return HttpResponse(resp.content, content_type=resp.headers.get("Content-Type"))
 
+# ------------------------------
+# CRUD viewsets for workout app
+# ------------------------------
 class SetViewSet(viewsets.ModelViewSet):
-    queryset = Set.objects.all()
+    """
+    Standard CRUD for workout sets.
+    Filters sets by exercises belonging to the authenticated user.
+    """
+    queryset = Set.objects.all() # Required for DRF but overwritten below otherwise any user could CRUD by id
     serializer_class = SetSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        # Only manipulate sets owned by authenticated user
         return Set.objects.filter(exercise__workout__user=self.request.user)
 
 class ExerciseViewSet(viewsets.ModelViewSet):
+    """
+    Standard CRUD for exercises.
+    Only returns exercises belonging to the authenticated user.
+    """
     queryset = Exercise.objects.all()
     serializer_class = ExerciseSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -98,11 +121,20 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         return Exercise.objects.filter(workout__user=self.request.user)
 
 class WorkoutViewSet(viewsets.ModelViewSet):
+    """
+    Standard CRUD for workouts.
+    Includes:
+    - get_queryset with prefetch to reduce DB queries for exercises & sets
+    - perform_create to automatically assign the current user
+    - 'recent' action to fetch paginated list of recent workouts
+    """
     queryset = Workout.objects.all()
     serializer_class = WorkoutSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        # Return workouts belonging to current user, newest first
+        # Prefetch exercises and their sets for performance
         return (
             Workout.objects
             .filter(user=self.request.user)
@@ -218,6 +250,13 @@ class GoogleCalendarAuthStart(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        """
+        Starts the OAuth2 flow for Google Calendar.
+        - Builds a Flow object using client config from settings.
+        - Requests offline access so a refresh token is returned.
+        - Stores state and user ID in session for later verification.
+        - Redirects user to Google's authorization URL.
+        """
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -238,19 +277,30 @@ class GoogleCalendarAuthStart(APIView):
             ],
             redirect_uri=settings.GOOGLE_REDIRECT_URI,
         )
+        # Generates the auth URL and state token
         authorization_url, state = flow.authorization_url(
             access_type="offline",
             include_granted_scopes="true",
             prompt="consent",
         )
+        # Store OAuth state and user ID in session for verification in callback
         request.session["google_oauth_state"] = state
         request.session["google_oauth_user_id"] = request.user.id
+        # Redirect the user to Google's consent page
         return redirect(authorization_url)
 
 class GoogleCalendarOAuth2Callback(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        """
+        Handles the OAuth2 callback from Google:
+        - Retrieves state and user ID from session.
+        - Reconstructs the Flow object with same client config and state.
+        - Fetches tokens using authorization response from Google.
+        - Saves access, refresh tokens and expiry to the user model.
+        - Redirects user to the frontend profile page.
+        """
         state = request.session.get("google_oauth_state")
         user_id = request.session.get("google_oauth_user_id")
         if not user_id:
@@ -261,7 +311,8 @@ class GoogleCalendarOAuth2Callback(APIView):
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return Response({"detail": "User not found"}, status=404)
-
+        
+        # Rebuild flow with stored state
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -283,13 +334,14 @@ class GoogleCalendarOAuth2Callback(APIView):
             state=state,
             redirect_uri=settings.GOOGLE_REDIRECT_URI,
         )
-
+        # Exchange authorization code for access and refresh tokens
         flow.fetch_token(authorization_response=request.build_absolute_uri())
         credentials = flow.credentials
+        # Ensure expiry has timezone info
         expiry = credentials.expiry
         if expiry is not None and expiry.tzinfo is None:
             expiry = expiry.replace(tzinfo=timezone.utc)
-
+        # Save tokens and expiry to user
         user.google_access_token = credentials.token
         user.google_refresh_token = credentials.refresh_token
         user.google_token_expiry = expiry
@@ -301,6 +353,12 @@ class AddWorkoutToCalendar(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        """
+        Adds a new event to the user's Google Calendar:
+        - Uses a helper to get authorized calendar service.
+        - Builds the event dict from request data.
+        - Inserts the event into the primary calendar.
+        """
         service = get_google_calendar_service(request.user)
         if not service:
             return Response({"detail": "Google Calendar authorization required."}, status=401)
@@ -320,6 +378,11 @@ class GoogleCalendarStatus(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        """
+        Checks if user has an active Google Calendar connection.
+        - Returns JSON with connected=True/False.
+        - Sets Cache-Control to prevent caching sensitive info.
+        """
         service = get_google_calendar_service(request.user)
         connected = service is not None
         response = Response({"connected": connected})
@@ -330,6 +393,11 @@ class GoogleCalendarDisconnect(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        """
+        Revokes user's Google access token and clears token fields.
+        - Sends revoke request to Google's revoke endpoint.
+        - Nulls out access/refresh/expiry fields in user model.
+        """
         user = request.user
         if user.google_access_token:
             try:

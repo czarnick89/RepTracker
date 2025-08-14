@@ -16,6 +16,7 @@ from .models import (
 )
 
 class SetSerializer(serializers.ModelSerializer):
+    # Optional on input; automatically computed if not provided
     set_number = serializers.IntegerField(required=False)
 
     class Meta:
@@ -24,12 +25,19 @@ class SetSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
 
     def run_validators(self, value):
-        # Skip UniqueTogetherValidator if set_number is not yet computed
+        """
+        Skip DRF's default UniqueTogetherValidator if set_number hasn't been computed yet.
+        Useful when creating a new set because set_number is assigned dynamically.
+        """
         if self.instance is None and ('set_number' not in self.initial_data or self.initial_data['set_number'] in [None, '']):
             return  # Skip default validators
         return super().run_validators(value)
 
     def validate(self, attrs):
+        """
+        On creation, compute set_number automatically if not provided.
+        Ensures each new set in an exercise has an incremented set_number.
+        """
         if self.instance is None:
             exercise = attrs.get('exercise')
             if not exercise:
@@ -45,6 +53,7 @@ class SetSerializer(serializers.ModelSerializer):
         return attrs
 
     def update(self, instance, validated_data):
+        # Prevent changing the exercise when updating a set
         validated_data.pop('exercise', None)
         return super().update(instance, validated_data)
     
@@ -56,7 +65,8 @@ class SetSerializer(serializers.ModelSerializer):
 
 class ExerciseSerializer(serializers.ModelSerializer):
     sets = SetSerializer(many=True, read_only=True)
-    exercise_number = serializers.IntegerField(required=False)  # optional on input
+    # optional input, computed automatically
+    exercise_number = serializers.IntegerField(required=False)  
 
     class Meta:
         model = Exercise
@@ -65,6 +75,10 @@ class ExerciseSerializer(serializers.ModelSerializer):
         validators = []  # Disable UniqueTogetherValidator added by DRF automatically
 
     def validate(self, attrs):
+        """
+        On creation, compute exercise_number automatically if not provided.
+        Manually enforce uniqueness of exercise_number within a workout.
+        """
         if self.instance is None:
             workout = attrs.get('workout')
             if not workout:
@@ -86,7 +100,8 @@ class ExerciseSerializer(serializers.ModelSerializer):
         return attrs
 
     def update(self, instance, validated_data):
-        validated_data.pop('workout', None)  # prevent workout change
+        # Prevent changing the workout reference when updating
+        validated_data.pop('workout', None)  
         return super().update(instance, validated_data)
 
 class WorkoutSerializer(serializers.ModelSerializer):
@@ -99,8 +114,11 @@ class WorkoutSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'id', 'created_at', 'updated_at']
 
     def validate(self, attrs):
+        """
+        On creation, compute workout_number automatically if not provided.
+        Ensures each new workout for a user has an incremented workout_number.
+        """
         if self.instance is None:
-            # We're creating a new Workout
             user = self.context['request'].user
             if 'workout_number' not in attrs or attrs['workout_number'] is None:
                 last_number = (
@@ -112,10 +130,12 @@ class WorkoutSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        # Automatically assign the authenticated user to the new workout
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
+        # Prevent changing the user on update
         validated_data.pop('user', None)
         return super().update(instance, validated_data)
     
