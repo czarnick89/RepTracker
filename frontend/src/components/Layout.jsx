@@ -1,9 +1,8 @@
-// src/components/Layout.jsx
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, Outlet } from "react-router-dom";
 import ConfirmModal from "./ConfirmModal";
 
-export default function Layout({ children }) {
+export default function Layout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
@@ -29,7 +28,7 @@ export default function Layout({ children }) {
           className="text-xl font-bold hover:text-gray-300"
           onClick={() => setSidebarOpen(false)}
         >
-          RepTracker 
+          RepTracker
         </Link>
       </nav>
 
@@ -44,8 +43,7 @@ export default function Layout({ children }) {
       {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 h-full bg-gray-900 text-white z-50 transform transition-transform duration-300 ease-in-out
-      ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-    `}
+      ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         style={{ width: "50vw", maxWidth: "300px" }}
       >
         <div className="p-6 flex flex-col space-y-6">
@@ -81,7 +79,9 @@ export default function Layout({ children }) {
       />
 
       {/* Page content */}
-      <main className="p-5">{children}</main>
+      <main className="p-5">
+        <Outlet />
+      </main>
     </div>
   );
 }
