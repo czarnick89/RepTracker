@@ -1,11 +1,11 @@
 import { useState } from "react";
-import api from "../api/axiosRefreshInterceptor"; // <- use your custom api
+import api from "../api/axiosRefreshInterceptor";
 import { performLogout } from "../utils/logout";
 
 export default function ChangePasswordForm() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState(""); // consistent naming
+  const [confirmPassword, setConfirmPassword] = useState(""); 
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState(null);
 

@@ -3,7 +3,6 @@ import api from "../api/axiosRefreshInterceptor";
 import { exerciseNames } from "../data/exerciseNames";
 import InfoModal from "./InfoModal";
 import { getExerciseByName, getExerciseGifUrl } from "../api/exerciseDB";
-// import { mockData } from "../data/mockData";
 
 export default function ExerciseCard({
   exercise,
@@ -48,7 +47,6 @@ export default function ExerciseCard({
     }
   }, [cooldown]);
 
-  // PATCH update exercise name on blur
   const handleExerciseNameBlur = () => {
     if (selectingFromDropdownRef.current) {
       // Just selected from dropdown, skip this blur save
@@ -64,13 +62,6 @@ export default function ExerciseCard({
     if (onExerciseNameSave) {
       onExerciseNameSave(exercise, exerciseName);
     }
-  };
-
-  const handleDropdownOptionMouseDown = (name) => {
-    selectingFromDropdownRef.current = true; // flag that selection is happening
-    setExerciseName(name);
-    setShowDropdown(false);
-    if (onExerciseNameSave) onExerciseNameSave(exercise, name);
   };
 
   const handleExerciseNameChange = (e) => {
@@ -89,7 +80,6 @@ export default function ExerciseCard({
     }
   };
 
-  // PATCH update set on blur
   const updateSet = (setId, newReps, newWeight) => {
     if (setId < 0) return; // don't PATCH sets that haven't been created yet
 
@@ -102,10 +92,9 @@ export default function ExerciseCard({
       .catch((err) => console.error("Failed to update set", err));
   };
 
-  // POST create new set in backend
-  const createNewSet = (reps, weight) => {
-    return api
-      .post(
+  const createNewSet = async (reps, weight) => {
+    try {
+      const res = await api.post(
         `https://127.0.0.1:8000/api/v1/workouts/sets/`,
         {
           exercise: exercise.id,
@@ -113,12 +102,12 @@ export default function ExerciseCard({
           weight: normalizeWeight(weight),
         },
         { withCredentials: true }
-      )
-      .then((res) => res.data)
-      .catch((err) => {
-        console.error("Failed to create new set", err);
-        throw err;
-      });
+      );
+      return res.data;
+    } catch (err) {
+      console.error("Failed to create new set", err);
+      throw err;
+    }
   };
 
   const deleteSet = (setId) => {
@@ -181,7 +170,7 @@ export default function ExerciseCard({
     try {
       const data = await getExerciseByName(lowerName);
       if (data.length > 0) {
-        exerciseInfoCache.current[lowerName] = data[0]; // cache it
+        exerciseInfoCache.current[lowerName] = data[0];
         setExerciseInfo(data[0]);
         setErrorInfo(null);
       } else {
@@ -197,12 +186,11 @@ export default function ExerciseCard({
   };
 
   const handleInfoClick = () => {
-    setCooldown(5); // 5-second cooldown
+    setCooldown(5);
     fetchExerciseInfo(exerciseName);
     setIsInfoModalOpen(true);
   };
 
-  // Validation helpers
   const isValidReps = (val) => {
     const num = Number(val);
     return Number.isInteger(num) && num > 0;
@@ -221,7 +209,6 @@ export default function ExerciseCard({
       : n.toFixed(2).replace(/\.?0+$/, "");
   };
 
-  // When reps or weight changes for new set, check if both valid and send create
   const handleNewSetBlur = (set) => {
     if (set.id === newSetId) {
       if (isValidReps(set.reps) && isValidWeight(set.weight)) {
@@ -347,7 +334,7 @@ export default function ExerciseCard({
                 key={idx}
                 className="px-3 py-1 hover:bg-gray-600 cursor-pointer"
                 onMouseDown={() => {
-                  selectingFromDropdownRef.current = true; // <-- Set flag here
+                  selectingFromDropdownRef.current = true;
                   setExerciseName(name);
                   setShowDropdown(false);
                   if (onExerciseNameSave) onExerciseNameSave(exercise, name);

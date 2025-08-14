@@ -12,7 +12,7 @@ function interceptorLogout() {
 
 const api = axios.create({
   baseURL: "https://127.0.0.1:8000/",
-  withCredentials: true, // Important so cookies are sent
+  withCredentials: true, 
 });
 
 let isRefreshing = false;
