@@ -4,17 +4,23 @@ import { Link, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Login() {
+  // Local state for form inputs, error messages, and loading state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Hooks for navigation and location (to redirect back after login)
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Auth context: current user info and loading status
   const { user, loading: authLoading, setUser } = useAuth();
 
   // Redirect logged-in users away from login page
+  // Uses location.state.from to send user back to the page they tried to access
   if (!authLoading && user) {
-    const from = location.state?.from?.pathname || "/dashboard";
+    const from = location.state?.from?.pathname || "/dashboard"; // Default to dashboard if the from is unable to be resolved
     return <Navigate to={from} replace />;
   }
 
@@ -24,18 +30,21 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // Send login request to backend via api
       await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/login/`,
         { email, password },
         { withCredentials: true }
       );
 
+      // Fetch user profile after successful login
       const res = await api.get(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/profile/`,
         { withCredentials: true }
       );
-
+      // Update authcontext with user data
       setUser(res.data);
+      // Redirect to original page or dashboard
       const from = location.state?.from?.pathname || "/dashboard";
       navigate(from, { replace: true });
     } catch (err) {

@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosRefreshInterceptor';
 
+// Component for resetting a user's password via a tokenized link
 export default function ResetPassword() {
-  const { uid, token } = useParams();
+  const { uid, token } = useParams(); // Pull UID and token from URL
   const navigate = useNavigate();
 
+  // Local state for form inputs and messages
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [status, setStatus] = useState(null);
@@ -14,6 +16,7 @@ export default function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Check passwords match before sending request
     if (password !== passwordConfirm) {
       setStatus('error');
       setMessage('Passwords do not match.');
@@ -21,6 +24,7 @@ export default function ResetPassword() {
     }
 
     try {
+      // Send POST to backend password reset endpoint
       const res = await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/password-reset-confirm/${uid}/${token}/`,
         { password },

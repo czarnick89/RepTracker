@@ -1,5 +1,6 @@
 import { Outlet, Link } from "react-router-dom";
 
+// PublicLayout is a layout wrapper for pages accessible without authentication, providdes nav bar functionality
 export default function PublicLayout() {
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">

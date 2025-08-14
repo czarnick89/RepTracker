@@ -2,11 +2,13 @@ import { useState } from "react";
 import { Link, useNavigate, Outlet } from "react-router-dom";
 import ConfirmModal from "./ConfirmModal";
 
+// Layout component wraps all protected pages and provides Navbar, Sidebar, and Logout functionality
 export default function Layout() {
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Sidebar visibility state
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false); // Logout confirmation modal state
 
+  // Handles logout click
   const handleLogout = () => {
     navigate("/logout");
   };

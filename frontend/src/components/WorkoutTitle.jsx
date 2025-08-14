@@ -1,13 +1,17 @@
 import React from "react";
+import { useState } from "react";
 
+// 
 function WorkoutTitle({ workout, onNameUpdate, onDelete, showDeleteButton}) {
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [name, setName] = React.useState(workout.name);
+  const [isEditing, setIsEditing] = useState(false); // Store isEditing state
+  const [name, setName] = React.useState(workout.name); // Store name, default to workout.name
 
+  // Called on blur
   const handleBlur = async () => {
     setIsEditing(false);
+    // Only update if the name is non-empty and has changed
     if (name.trim() && name !== workout.name) {
-      await onNameUpdate(workout.id, name);
+      await onNameUpdate(workout.id, name); // Call parent handler
     }
   };
 

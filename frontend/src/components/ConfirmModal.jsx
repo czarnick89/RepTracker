@@ -1,4 +1,4 @@
-
+// Creates a modal for confim/cancel action
 export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }) {
   if (!isOpen) return null;
 

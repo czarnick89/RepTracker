@@ -3,12 +3,14 @@ import api from "../api/axiosRefreshInterceptor";
 import { useAuth } from "../contexts/AuthContext";
 import ChangePasswordForm from "../components/ChangePasswordForm";
 
+// Profile page component: shows user info, allows password change, and workout scheduling
 export default function Profile() {
-  const { user, loading } = useAuth();
-  const [profile, setProfile] = useState(null);
+  const { user, loading } = useAuth(); // Get current user and auth loading state
+  const [profile, setProfile] = useState(null); // Stores profile info fetched from backend
   const [error, setError] = useState(null);
-  const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
+  const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false); // Tracks Google Calendar connection status
 
+  // Used to store form data. Default blank
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -18,16 +20,20 @@ export default function Profile() {
     location: "",
   });
 
+  // Handle change on form inputs
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Handle scheduling form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Formats the inputted times and dates into strings
     const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
     const endDateTime = new Date(`${formData.date}T${formData.endTime}`);
 
+    // Organizes data into form backend expects for calendar set event
     const payload = {
       summary: formData.title,
       start_time: startDateTime.toISOString(),
@@ -37,6 +43,7 @@ export default function Profile() {
     };
 
     try {
+      // Use api to send calendar event data to backend
       await api.post("/api/v1/workouts/google-calendar/create-event/", payload, {
         withCredentials: true,
       });
@@ -55,7 +62,7 @@ export default function Profile() {
     }
   };
 
-  // Fetch Google Calendar connection status
+  // Fetch Google Calendar connection status after user is loaded
   useEffect(() => {
     if (loading || !user) return;
 
@@ -65,26 +72,27 @@ export default function Profile() {
           withCredentials: true,
           headers: { "Cache-Control": "no-cache" },
         });
-        setGoogleCalendarConnected(res.data.connected);
+        setGoogleCalendarConnected(res.data.connected); // Update state so it can be displayed on screen
       } catch (err) {
         console.error("Failed to fetch Google Calendar status:", err);
-        setGoogleCalendarConnected(false);
+        setGoogleCalendarConnected(false); // Default/fallback not connected
       }
     };
 
     fetchStatus();
   }, [loading, user]);
 
-  // Fetch user profile
+  // Fetch user profile once user is loaded
   useEffect(() => {
     if (loading || !user) return;
 
     api
+    // Use api to get user profile data
       .get("/api/v1/users/profile/", {
         withCredentials: true,
         headers: { "Cache-Control": "no-cache" },
       })
-      .then((res) => setProfile(res.data))
+      .then((res) => setProfile(res.data)) // Store user profile data in state
       .catch(() => setError("Failed to load profile."));
   }, [loading, user]);
 
@@ -99,7 +107,7 @@ export default function Profile() {
       <form
         onSubmit={handleSubmit}
         className="bg-white rounded-lg shadow-md max-w-md w-full p-6 space-y-5"
-      >
+      >{/* Workout Scheduler Form */}
         <h2 className="text-2xl font-bold text-slate-800 text-center w-full border-b border-gray-300 pb-3">
           Workout Scheduler
         </h2>

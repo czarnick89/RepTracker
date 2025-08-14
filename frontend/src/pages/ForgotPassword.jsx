@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import api from '../api/axiosRefreshInterceptor';
 
+// ForgotPassword page allows users to request a password reset email
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState(null); 

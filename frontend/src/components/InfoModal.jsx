@@ -1,4 +1,4 @@
-
+// Creates an Info Modal that displays data from exerciseDB api calls
 export default function InfoModal({ isOpen, onClose, children }) {
   if (!isOpen) return null;
 

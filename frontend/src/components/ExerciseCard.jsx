@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import api from "../api/axiosRefreshInterceptor";
 import { exerciseNames } from "../data/exerciseNames";
 import InfoModal from "./InfoModal";
@@ -11,35 +11,35 @@ export default function ExerciseCard({
   showDeleteButton,
   onWeightPreferenceChange,
 }) {
-  const [exerciseName, setExerciseName] = useState(exercise.name);
-  // For sets, keep track of reps and weight locally too:
-  const [sets, setSets] = useState(exercise.sets);
-  // Track which set is new and pending save
-  const [newSetId, setNewSetId] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [setToDelete, setSetToDelete] = useState(null);
+  const [exerciseName, setExerciseName] = useState(exercise.name); // State for exercise name
+  const [sets, setSets] = useState(exercise.sets); // Local copy of sets to update UI, actual update of these values happen?
+  const [newSetId, setNewSetId] = useState(null); // Tracks which set is new and pending save
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // Track if delete modal for sets is open
+  const [setToDelete, setSetToDelete] = useState(null); // Holds set to delete during delete flow
 
-  const [filteredExercises, setFilteredExercises] = useState([]);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [filteredExercises, setFilteredExercises] = useState([]); // Auto-suggest dropdown state, list of exercises
+  const [showDropdown, setShowDropdown] = useState(false); // Dropdown state, not showing by default
 
-  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-  const [exerciseInfo, setExerciseInfo] = useState(null);
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false); // Exercise info modal show state
+  const [exerciseInfo, setExerciseInfo] = useState(null); // Exercise info modal data from exerciseDB api call
   const [loadingInfo, setLoadingInfo] = useState(false);
   const [errorInfo, setErrorInfo] = useState(null);
 
-  const [cooldown, setCooldown] = useState(0);
+  const [cooldown, setCooldown] = useState(0); // Cooldown state so you can't spam click info button
 
-  const selectingFromDropdownRef = useRef(false);
+  const selectingFromDropdownRef = useRef(false); // Flag to prevent blur-triggered save when selecting from dropdown
 
-  const weightInputRef = useRef(null);
-  const exerciseInfoCache = useRef({});
+  const weightInputRef = useRef(null); // Ref for weight input for potential programmatic focus
 
-  // Add a useEffect to sync local exerciseName when exercise prop changes (e.g., after saving new exercise)
+  const exerciseInfoCache = useRef({}); // Cache exercise info to avoid redundant API calls
+
+  // Sync local state if exercise prop updates
   useEffect(() => {
     setExerciseName(exercise.name);
     setSets(exercise.sets);
   }, [exercise]);
 
+  // Cooldown timer effect for question mark button
   useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
@@ -47,9 +47,10 @@ export default function ExerciseCard({
     }
   }, [cooldown]);
 
+  // Save exercise name on blur UNLESS selecting from dropdown
   const handleExerciseNameBlur = () => {
     if (selectingFromDropdownRef.current) {
-      // Just selected from dropdown, skip this blur save
+      // If User just selected from dropdown, skip this blur save
       selectingFromDropdownRef.current = false;
       return;
     }
@@ -57,34 +58,41 @@ export default function ExerciseCard({
     // Always close the dropdown on blur
     setShowDropdown(false);
 
+    // Just return if the name didn't change
     if (exerciseName === exercise.name) return;
 
+    //
     if (onExerciseNameSave) {
-      onExerciseNameSave(exercise, exerciseName);
+      onExerciseNameSave(exercise, exerciseName); // Save exercise name via parent function
     }
   };
 
+  // Handle typing in exercise name input and filter dropdown suggestions
   const handleExerciseNameChange = (e) => {
     const input = e.target.value;
-    setExerciseName(input);
+    setExerciseName(input); // Set exercise name to input
 
     if (input.length >= 2) {
+      // Once input is 2 or greater, start filtering the list of exercises
       const filtered = exerciseNames.filter((name) =>
         name.toLowerCase().includes(input.toLowerCase())
       );
-      setFilteredExercises(filtered);
-      setShowDropdown(true);
+      setFilteredExercises(filtered); // Save the filtered exercise list in state
+      setShowDropdown(true); // Show the drop down
     } else {
+      // Don't filter or show dropdown if input.length < 2
       setFilteredExercises([]);
       setShowDropdown(false);
     }
   };
 
+  // Update a set on the server
   const updateSet = (setId, newReps, newWeight) => {
     if (setId < 0) return; // don't PATCH sets that haven't been created yet
 
     api
       .patch(
+        // Use api to request the backend update the set reps, weight, or both
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/${setId}/`,
         { reps: Number(newReps), weight: normalizeWeight(newWeight) },
         { withCredentials: true }
@@ -92,9 +100,11 @@ export default function ExerciseCard({
       .catch((err) => console.error("Failed to update set", err));
   };
 
+  // Create a new set on the backend
   const createNewSet = async (reps, weight) => {
     try {
       const res = await api.post(
+        // Send request to backend with necessary info to create a new set
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/`,
         {
           exercise: exercise.id,
@@ -103,13 +113,14 @@ export default function ExerciseCard({
         },
         { withCredentials: true }
       );
-      return res.data;
+      return res.data; // return the newly created set for front end updating
     } catch (err) {
       console.error("Failed to create new set", err);
       throw err;
     }
   };
 
+  // Delete a set either locally or from backend
   const deleteSet = (setId) => {
     if (setId < 0) {
       // Remove locally
@@ -119,11 +130,13 @@ export default function ExerciseCard({
     }
 
     api
-      .delete(`${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/${setId}/`, {
+      .delete(
+        // Send delete request to backend for set
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/${setId}/`, {
         withCredentials: true,
       })
       .then(() => {
-        setSets((prev) => prev.filter((s) => s.id !== setId));
+        setSets((prev) => prev.filter((s) => s.id !== setId)); // remove set from local state after delete on back end
       })
       .catch((err) => console.error("Failed to delete set", err));
   };
@@ -135,19 +148,21 @@ export default function ExerciseCard({
     );
   };
 
+  // Handle add new set on front end
   const handleAddNewSet = () => {
     // Create a temp set id for local tracking (negative to avoid clashing)
     const tempId = Math.min(...sets.map((s) => s.id), 0) - 1;
     const blankSet = { id: tempId, reps: "", weight: "" };
-    setSets((prev) => [...prev, blankSet]);
-    setNewSetId(tempId);
+    setSets((prev) => [...prev, blankSet]); // Add new set to state
+    setNewSetId(tempId); // Keep track of the temp id
 
-    // Focus weight input on next tick
+    // Focus weight input 
     setTimeout(() => {
       if (weightInputRef.current) weightInputRef.current.focus();
     }, 100);
   };
 
+  // Fetch exercise info from API or cache
   const fetchExerciseInfo = async (name) => {
     if (!name || name.trim() === "") {
       setErrorInfo("Please enter an exercise name");
@@ -157,6 +172,7 @@ export default function ExerciseCard({
 
     const lowerName = name.toLowerCase();
 
+    // Pull from cache if available
     if (exerciseInfoCache.current[lowerName]) {
       setExerciseInfo(exerciseInfoCache.current[lowerName]);
       setErrorInfo(null);
@@ -167,11 +183,13 @@ export default function ExerciseCard({
     setLoadingInfo(true);
     setErrorInfo(null);
 
+    // If the exercise name wasn't in the cache
     try {
+      // Use getExerciseByName to backend proxy the exerciseDB
       const data = await getExerciseByName(lowerName);
       if (data.length > 0) {
-        exerciseInfoCache.current[lowerName] = data[0];
-        setExerciseInfo(data[0]);
+        exerciseInfoCache.current[lowerName] = data[0]; // pull the name of the first exercise object returned
+        setExerciseInfo(data[0]); // Store the data from the API call in state
         setErrorInfo(null);
       } else {
         setExerciseInfo(null);
@@ -185,21 +203,26 @@ export default function ExerciseCard({
     }
   };
 
+  // Handle info button click (question mark button)
   const handleInfoClick = () => {
     setCooldown(5);
     fetchExerciseInfo(exerciseName);
     setIsInfoModalOpen(true);
   };
 
+  // Validate reps input
   const isValidReps = (val) => {
     const num = Number(val);
     return Number.isInteger(num) && num > 0;
   };
+
+  // Validate weight input
   const isValidWeight = (val) => {
     const num = Number(val);
     return !isNaN(num) && num >= 0;
   };
 
+  // Format numbers nicely for display
   const formatNumber = (num) => {
     if (num == null) return "";
     // Convert to number first, then check if integer
@@ -209,6 +232,7 @@ export default function ExerciseCard({
       : n.toFixed(2).replace(/\.?0+$/, "");
   };
 
+  // Handle blur event on a new set to save it to backend
   const handleNewSetBlur = (set) => {
     if (set.id === newSetId) {
       if (isValidReps(set.reps) && isValidWeight(set.weight)) {
@@ -221,12 +245,13 @@ export default function ExerciseCard({
             setNewSetId(null);
           })
           .catch(() => {
-            // On failure you can decide to remove new set or keep it for retry
+            // Add logic to keep or discard 
           });
       }
     }
   };
 
+  // Convert empty or invalid weight to 0
   const normalizeWeight = (weight) => {
     if (weight === "" || weight === null || weight === undefined) return 0;
     return Number(weight);

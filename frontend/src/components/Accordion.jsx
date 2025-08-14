@@ -1,10 +1,13 @@
 import { useState } from "react";
 
+// Accordion component that can expand/collapse its content
 export default function Accordion({ title, children }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false); // track whether accordion is open
 
+  // Toggle open/closed state
   const toggleOpen = () => setOpen((prev) => !prev);
 
+  // Handle keyboard accessibility: toggle on Enter key
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();

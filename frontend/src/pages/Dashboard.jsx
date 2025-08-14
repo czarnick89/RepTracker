@@ -5,58 +5,70 @@ import ExerciseCard from "../components/ExerciseCard";
 import ConfirmModal from "../components/ConfirmModal";
 import WorkoutTitle from "../components/WorkoutTitle";
 
+// Dashboard component: displays recent workouts, allows creating/editing/deleting workouts and exercises
 export default function Dashboard() {
-  const [workouts, setWorkouts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [exercisesByWorkout, setExercisesByWorkout] = useState({});
+  // Workouts and exercises state
+  const [workouts, setWorkouts] = useState([]); // list of workouts
+  const [loading, setLoading] = useState(true); // loading indicator
+  const [exercisesByWorkout, setExercisesByWorkout] = useState({}); // mapping of workoutId -> exercises
+
+  // Temp IDs for client-side creation before backend returns actual IDs
   const [tempExerciseId, setTempExerciseId] = useState(-1);
-  const [newWorkout, setNewWorkout] = useState(null);
   const [tempWorkoutId, setTempWorkoutId] = useState(-1);
-  const [workoutToDelete, setWorkoutToDelete] = useState(null);
-  const [exerciseToDelete, setExerciseToDelete] = useState(null);
-  const [showDeleteButtons, setShowDeleteButtons] = useState(false);
 
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(true); 
-  const PAGE_SIZE = 10; 
+  // State for new items and deletions
+  const [newWorkout, setNewWorkout] = useState(null); // new workout being created
+  const [workoutToDelete, setWorkoutToDelete] = useState(null); // ID of workout pending deletion
+  const [exerciseToDelete, setExerciseToDelete] = useState(null); // object {workoutId, exerciseId}
+  const [showDeleteButtons, setShowDeleteButtons] = useState(false); // toggle delete buttons for UX
 
+  // Pagination state
+  const [offset, setOffset] = useState(0); // for API pagination
+  const [hasMore, setHasMore] = useState(true); // track if more workouts are available
+  const PAGE_SIZE = 10; // number of workouts per API call
+
+  // Fetch recent workouts on load
   useEffect(() => {
-    fetchWorkouts(true); 
+    fetchWorkouts(true);
   }, []);
 
+  // Fetch workouts helper
   const fetchWorkouts = async (reset = false) => {
     try {
+      // Use api to get recent workouts
       const res = await api.get(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/workouts/recent/`,
         {
           withCredentials: true,
           params: {
-            offset: reset ? 0 : offset,
-            limit: PAGE_SIZE,
+            offset: reset ? 0 : offset, // Helps keep track of how many additional we have loaded using Load More Workouts button
+            limit: PAGE_SIZE, // How many workouts to fetch per Load More Workouts button press
           },
         }
       );
-
+      // Sort workouts by date descending
       const sorted = [...res.data].sort(
         (a, b) => new Date(b.date) - new Date(a.date)
       );
 
       if (reset) {
-        setWorkouts(sorted);
+        setWorkouts(sorted); // Replace sorted workouts in state
         const exercisesMap = {};
+        // Map workout ID to exercise to generate exercise array. Needed so exercises are placed with proper workouts
         sorted.forEach((w) => {
           exercisesMap[w.id] = w.exercises || [];
         });
-        setExercisesByWorkout(exercisesMap);
-        setOffset(sorted.length);
+        setExercisesByWorkout(exercisesMap); // Save exercise array to state
+        setOffset(sorted.length); // Update offset so next push of Load More Workouts button will load proper workouts
       } else {
-        setWorkouts((prev) => [...prev, ...sorted]);
-        setOffset((prev) => prev + sorted.length);
+        setWorkouts((prev) => [...prev, ...sorted]); // Append newly fetched workouts to workouts state
+        setOffset((prev) => prev + sorted.length); // Update offset so next push of Load More Workouts button will load proper workouts
 
-        // update exercises map
+        // Update exercises map for newly fetched workouts
         setExercisesByWorkout((prev) => {
-          const newMap = { ...prev };
+          const newMap = { ...prev }; // Start a new map with old map
           sorted.forEach((w) => {
+            // Map workout ID to exercise to add to new map
             newMap[w.id] = w.exercises || [];
           });
           return newMap;
@@ -64,7 +76,7 @@ export default function Dashboard() {
       }
 
       // If we got fewer than PAGE_SIZE, there’s no more to load
-      if (res.data.length < PAGE_SIZE) setHasMore(false);
+      if (res.data.length < PAGE_SIZE) setHasMore(false); // when hasmore = false the Load More Workouts button is not rendered
     } catch (err) {
       console.error("Failed to load workouts", err);
     } finally {
@@ -72,16 +84,27 @@ export default function Dashboard() {
     }
   };
 
+  // Function to add a new blank exercise to a workout
   const handleAddNewExercise = (workoutId) => {
+    // Update the exercisesByWorkout state
     setExercisesByWorkout((prev) => {
+      // 1. Get existing exercises for this workout, or empty array if none
       const prevExercises = prev[workoutId] || [];
+
+      // 2. Create a new "blank" exercise object
+      //    id uses tempExerciseId (negative numbers for unsaved exercises)
+      //    name is empty, sets is empty, workoutId links it to parent workout
       const blankExercise = {
         id: tempExerciseId,
         name: "",
         sets: [],
         workoutId,
       };
+      // 3. Decrement tempExerciseId for next new exercise
       setTempExerciseId((id) => id - 1);
+      // 4. Return new exercisesByWorkout object
+      //    - copy existing state with ...prev
+      //    - replace the array for this workoutId with old exercises + new blank exercise
       return {
         ...prev,
         [workoutId]: [...prevExercises, blankExercise],
@@ -89,17 +112,25 @@ export default function Dashboard() {
     });
   };
 
+  // Function to save a newly added exercise to the backend
   const handleSaveNewExercise = async (workoutId, tempId, newName) => {
     try {
+      // 1. Send POST request to backend to create the new exercise
+      //    - workoutId links the exercise to the correct workout
+      //    - newName is the exercise name provided by user
       const res = await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/exercises/`,
         { workout: workoutId, name: newName },
         { withCredentials: true }
       );
+      // 2. Update frontend state after backend confirms creation
       setExercisesByWorkout((prev) => {
+        // Map over existing exercises for this workout
         const updatedExercises = prev[workoutId].map((ex) =>
+          // Replace the temporary exercise (tempId) with the saved one from backend (res.data)
           ex.id === tempId ? res.data : ex
         );
+        // Return new state object
         return { ...prev, [workoutId]: updatedExercises };
       });
     } catch (error) {
@@ -107,10 +138,14 @@ export default function Dashboard() {
     }
   };
 
+  // Function to save or update an exercise name
   const handleExerciseNameSave = async (exercise, newName) => {
     if (exercise.id < 0) {
+      // If exercise has a temporary negative ID, it's a new exercise
+      // Call handleSaveNewExercise to create it on the backend
       await handleSaveNewExercise(exercise.workoutId, exercise.id, newName);
     } else {
+      // If exercise already exists in backend, update its name via PATCH
       try {
         await api.patch(`/api/v1/workouts/exercises/${exercise.id}/`, {
           name: newName,
@@ -122,27 +157,36 @@ export default function Dashboard() {
     }
   };
 
+  // Function to delete an exercise from a workout
   const handleDeleteExercise = async () => {
+    // Exit early if no exercise is selected for deletion
     if (!exerciseToDelete) return;
     const { workoutId, exerciseId } = exerciseToDelete;
     try {
+      // Send DELETE request to backend to remove exercise
       await api.delete(`/api/v1/workouts/exercises/${exerciseId}/`);
+      // Update frontend state to remove the exercise from the exercisesByWorkout map
       setExercisesByWorkout((prev) => {
         const updated = { ...prev };
+        // Filter out the deleted exercise from its workout's array
         updated[workoutId] = updated[workoutId].filter(
           (e) => e.id !== exerciseId
         );
         return updated;
       });
+      // Clear the temporary deletion state
       setExerciseToDelete(null);
     } catch (error) {
       console.error("Failed to delete exercise:", error);
     }
   };
 
+  // Function to handle new workout name on blur
   const handleNewWorkoutNameBlur = async () => {
+    // Guard clause: if no newWorkout is set, or its name is empty/whitespace, exit early
     if (!newWorkout || newWorkout.name.trim() === "") return;
     try {
+      // Send POST request to backend to create a new workout
       const res = await api.post(
         "/api/v1/workouts/workouts/",
         {
@@ -151,26 +195,34 @@ export default function Dashboard() {
         },
         { withCredentials: true }
       );
+      // Add the newly created workout to the top of the workouts state array
       setWorkouts((prev) => [res.data, ...prev]);
+      // Initialize an empty exercises array for the new workout in the map
       setExercisesByWorkout((prev) => ({
         ...prev,
         [res.data.id]: [],
       }));
+      // Clear the temporary newWorkout state
       setNewWorkout(null);
+      // Decrement tempWorkoutId for the next new workout
       setTempWorkoutId((id) => id - 1);
     } catch (error) {
       console.error("Failed to create workout", error);
     }
   };
 
+    // Function to update a workouts name
   const handleWorkoutNameUpdate = async (workoutId, newName) => {
     try {
+      // Send PATCH request to backend to update the workout's name
       const res = await api.patch(`/api/v1/workouts/workouts/${workoutId}/`, {
         name: newName,
       });
+      // Update the local state to reflect the new name without refetching all workouts
       setWorkouts((prev) =>
         prev.map((w) =>
-          w.id === workoutId ? { ...w, name: res.data.name } : w
+          w.id === workoutId ? { ...w, name: res.data.name } // Replace the name for the updated workout
+      : w // Leave other workouts unchanged
         )
       );
     } catch (error) {
@@ -178,45 +230,56 @@ export default function Dashboard() {
     }
   };
 
+  // Function to handle deleting workouts
   const handleDeleteWorkout = async () => {
+    // Guard clause: exit early if no workout is selected for deletion
     if (!workoutToDelete) return;
     try {
+      // Send DELETE request to backend to remove the workout
       await api.delete(`/api/v1/workouts/workouts/${workoutToDelete}/`);
+      // Update local workouts state to remove the deleted workout
       setWorkouts((prev) => prev.filter((w) => w.id !== workoutToDelete));
+      // Update exercisesByWorkout state to remove any exercises associated with the deleted workout
       setExercisesByWorkout((prev) => {
         const updated = { ...prev };
         delete updated[workoutToDelete];
         return updated;
       });
+      // Clear the temporary state for the workout-to-delete
       setWorkoutToDelete(null);
     } catch (error) {
       console.error("Failed to delete workout:", error);
     }
   };
 
+  // Function to handle the weight change preference option on exercises
   const handleWeightPreferenceChange = async (
     workoutId,
     exerciseId,
     newPreference
   ) => {
     try {
+      // Update local state for render
       setExercisesByWorkout((prev) => {
+        // Map through exercises of the given workout
         const updatedExercises = prev[workoutId].map((ex) =>
           ex.id === exerciseId
-            ? { ...ex, weight_change_preference: newPreference }
-            : ex
+            ? { ...ex, weight_change_preference: newPreference } // update only the matching exercise
+            : ex // Leave the others alone
         );
+        // Return a new object with the updated exercises array for this workout
         return { ...prev, [workoutId]: updatedExercises };
       });
 
       await api.patch(
+        // Send request to backend to save this change
         `/api/v1/workouts/exercises/${exerciseId}/`,
         { weight_change_preference: newPreference },
         { withCredentials: true }
       );
     } catch (err) {
       console.error("Failed to update weight preference:", err);
-      // Optionally revert frontend state here 
+      // Need to revert front end state if above fails?
     }
   };
 
