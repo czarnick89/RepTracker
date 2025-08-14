@@ -11,7 +11,7 @@ function interceptorLogout() {
 }
 
 const api = axios.create({
-  baseURL: "https://127.0.0.1:8000/",
+  baseURL: `${import.meta.env.VITE_BACKEND_URL}`,
   withCredentials: true, 
 });
 

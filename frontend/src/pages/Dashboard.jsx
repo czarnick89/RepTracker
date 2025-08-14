@@ -27,7 +27,7 @@ export default function Dashboard() {
   const fetchWorkouts = async (reset = false) => {
     try {
       const res = await api.get(
-        "https://127.0.0.1:8000/api/v1/workouts/workouts/recent/",
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/workouts/recent/`,
         {
           withCredentials: true,
           params: {
@@ -92,7 +92,7 @@ export default function Dashboard() {
   const handleSaveNewExercise = async (workoutId, tempId, newName) => {
     try {
       const res = await api.post(
-        "https://127.0.0.1:8000/api/v1/workouts/exercises/",
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/exercises/`,
         { workout: workoutId, name: newName },
         { withCredentials: true }
       );

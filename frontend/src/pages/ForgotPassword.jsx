@@ -13,7 +13,7 @@ export default function ForgotPassword() {
     setMessage("");
     try {
       const response = await api.post(
-        "https://127.0.0.1:8000/api/v1/users/password-reset/",
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/password-reset/`,
         { email },
         {
           headers: {
