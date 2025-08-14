@@ -55,7 +55,7 @@ export default function Login() {
     <div className="bg-slate-900 min-h-screen flex items-center justify-center px-4">
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-slate-800">
-          RepTrack Login
+          RepTracker Login
         </h2>
 
         {error && (
