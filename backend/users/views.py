@@ -32,7 +32,7 @@ class RegisterView(APIView):
             send_mail(
                 subject="Verify your email",
                 message=f"Click the link to verify your account: {link}",
-                from_email="noreply@reptrack.com",
+                from_email="noreply@reptracker.com",
                 recipient_list=[user.email],
                 fail_silently=False,
             )
@@ -139,9 +139,9 @@ class PasswordResetRequestView(APIView):
         reset_link = f"https://localhost:5173/reset-password/{uid}/{token}/"  # Frontend link
 
         send_mail(
-            subject="Reset your RepTrack password",
+            subject="Reset your RepTracker password",
             message=f"Use the following link to reset your password:\n\n{reset_link}",
-            from_email="noreply@reptrack.com",
+            from_email="noreply@reptracker.com",
             recipient_list=[user.email],
             fail_silently=False,
         )
@@ -239,7 +239,7 @@ class ResendVerificationEmailView(APIView):
         send_mail(
             subject="Verify your email",
             message=f"Click the link to verify your account: {link}",
-            from_email="noreply@reptrack.com",
+            from_email="noreply@reptracker.com",
             recipient_list=[user.email],
             fail_silently=False,
         )
