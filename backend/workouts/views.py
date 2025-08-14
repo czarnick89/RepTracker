@@ -6,6 +6,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 from django.db.models import Prefetch
+from rest_framework.views import APIView
 import requests
 from django.conf import settings
 from django.http import HttpResponse
@@ -22,57 +23,97 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-@throttle_classes([ExerciseInfoThrottle])
-def exercise_by_name_proxy(request):
+# @api_view(['GET'])
+# @permission_classes([permissions.IsAuthenticated])
+# @throttle_classes([ExerciseInfoThrottle])
+# def exercise_by_name_proxy(request):
 
-    name = request.query_params.get('name')
-    if not name:
-        return Response({"detail": "Missing 'name' parameter"}, status=s.HTTP_400_BAD_REQUEST)
+#     name = request.query_params.get('name')
+#     if not name:
+#         return Response({"detail": "Missing 'name' parameter"}, status=s.HTTP_400_BAD_REQUEST)
 
-    url = f"https://exercisedb.p.rapidapi.com/exercises/name/{name}"
-    headers = {
-        "X-RapidAPI-Key": config('RAPIDAPI_KEY'),
-        "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
-    }
+#     url = f"https://exercisedb.p.rapidapi.com/exercises/name/{name}"
+#     headers = {
+#         "X-RapidAPI-Key": config('RAPIDAPI_KEY'),
+#         "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
+#     }
 
-    resp = requests.get(url, headers=headers)
+#     resp = requests.get(url, headers=headers)
 
-    if resp.status_code != 200:
-        return Response({"detail": "Failed to fetch exercise from external API"}, status=resp.status_code)
+#     if resp.status_code != 200:
+#         return Response({"detail": "Failed to fetch exercise from external API"}, status=resp.status_code)
 
-    return Response(resp.json())
+#     return Response(resp.json())
 
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-@throttle_classes([ExerciseInfoThrottle])
-def exercise_gif_proxy(request):
+class ExerciseByNameProxy(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ExerciseInfoThrottle]  # Replace with ExerciseInfoThrottle if needed
 
-    #permission_classes = [permissions.IsAuthenticated] # for some reason you cant do this in a function body
+    def get(self, request):
+        name = request.query_params.get("name")
+        if not name:
+            return Response({"detail": "Missing 'name' parameter"}, status=s.HTTP_400_BAD_REQUEST)
+        
+        url = f"https://exercisedb.p.rapidapi.com/exercises/name/{name}"
+        headers = {
+            "X-RapidAPI-Key": config("RAPIDAPI_KEY"),
+            "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
+        }
+        resp = requests.get(url, headers=headers)
+        if resp.status_code != 200:
+            return Response({"detail": "Failed to fetch exercise from external API"}, status=resp.status_code)
+        return Response(resp.json())
 
-    exercise_db_id = request.query_params.get('exerciseId')
-    resolution = request.query_params.get('resolution', '180')
+# @api_view(['GET'])
+# @permission_classes([permissions.IsAuthenticated])
+# @throttle_classes([ExerciseInfoThrottle])
+# def exercise_gif_proxy(request):
 
-    if not exercise_db_id:
-        return HttpResponse("Missing 'exerciseId' parameter", status=400)
+#     #permission_classes = [permissions.IsAuthenticated] # for some reason you cant do this in a function body
 
-    url = "https://exercisedb.p.rapidapi.com/image"
-    params = {
-        "exerciseId": exercise_db_id,
-        "resolution": resolution,
-    }
-    headers = {
-        "X-RapidAPI-Key": config('RAPIDAPI_KEY'),
-        "X-RapidAPI-Host": "exercisedb.p.rapidapi.com"
-    }
+#     exercise_db_id = request.query_params.get('exerciseId')
+#     resolution = request.query_params.get('resolution', '180')
 
-    resp = requests.get(url, headers=headers, params=params)
+#     if not exercise_db_id:
+#         return HttpResponse("Missing 'exerciseId' parameter", status=400)
 
-    if resp.status_code != 200:
-        return HttpResponse("Image not found", status=resp.status_code)
+#     url = "https://exercisedb.p.rapidapi.com/image"
+#     params = {
+#         "exerciseId": exercise_db_id,
+#         "resolution": resolution,
+#     }
+#     headers = {
+#         "X-RapidAPI-Key": config('RAPIDAPI_KEY'),
+#         "X-RapidAPI-Host": "exercisedb.p.rapidapi.com"
+#     }
 
-    return HttpResponse(resp.content, content_type=resp.headers.get("Content-Type", "image/gif"))
+#     resp = requests.get(url, headers=headers, params=params)
+
+#     if resp.status_code != 200:
+#         return HttpResponse("Image not found", status=resp.status_code)
+
+#     return HttpResponse(resp.content, content_type=resp.headers.get("Content-Type", "image/gif"))
+
+class ExerciseGifProxy(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ExerciseInfoThrottle]  # Replace with ExerciseInfoThrottle if needed
+
+    def get(self, request):
+        exercise_db_id = request.query_params.get("exerciseId")
+        resolution = request.query_params.get("resolution", "180")
+        if not exercise_db_id:
+            return HttpResponse("Missing 'exerciseId' parameter", status=400)
+        
+        url = "https://exercisedb.p.rapidapi.com/image"
+        params = {"exerciseId": exercise_db_id, "resolution": resolution}
+        headers = {
+            "X-RapidAPI-Key": config("RAPIDAPI_KEY"),
+            "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
+        }
+        resp = requests.get(url, headers=headers, params=params)
+        if resp.status_code != 200:
+            return HttpResponse("Image not found", status=resp.status_code)
+        return HttpResponse(resp.content, content_type=resp.headers.get("Content-Type"))
 
 # Create your views here.
 class SetViewSet(viewsets.ModelViewSet):
@@ -208,155 +249,286 @@ class TemplateWorkoutViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("You do not have permission to delete this template.")
         instance.delete()
 
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-def google_calendar_auth_start(request):
-    flow = Flow.from_client_config(
-        {
-            "web": {
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
-                "scopes": [
-                    "https://www.googleapis.com/auth/calendar.events",
-                    "https://www.googleapis.com/auth/calendar.readonly",
-                ],
-            }
-        },
-        scopes=[
-            "https://www.googleapis.com/auth/calendar.events",
-            "https://www.googleapis.com/auth/calendar.readonly",
-        ],
-        redirect_uri=settings.GOOGLE_REDIRECT_URI,
-    )
+# @api_view(['GET'])
+# @permission_classes([permissions.IsAuthenticated])
+# def google_calendar_auth_start(request):
+#     flow = Flow.from_client_config(
+#         {
+#             "web": {
+#                 "client_id": settings.GOOGLE_CLIENT_ID,
+#                 "client_secret": settings.GOOGLE_CLIENT_SECRET,
+#                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+#                 "token_uri": "https://oauth2.googleapis.com/token",
+#                 "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
+#                 "scopes": [
+#                     "https://www.googleapis.com/auth/calendar.events",
+#                     "https://www.googleapis.com/auth/calendar.readonly",
+#                 ],
+#             }
+#         },
+#         scopes=[
+#             "https://www.googleapis.com/auth/calendar.events",
+#             "https://www.googleapis.com/auth/calendar.readonly",
+#         ],
+#         redirect_uri=settings.GOOGLE_REDIRECT_URI,
+#     )
 
-    authorization_url, state = flow.authorization_url(
-        access_type='offline',
-        include_granted_scopes='true',
-        prompt='consent',
-    )
+#     authorization_url, state = flow.authorization_url(
+#         access_type='offline',
+#         include_granted_scopes='true',
+#         prompt='consent',
+#     )
 
-    # Save the state and user ID in session to verify later
-    request.session['google_oauth_state'] = state
-    request.session['google_oauth_user_id'] = request.user.id  # <<<<< Add this line
+#     # Save the state and user ID in session to verify later
+#     request.session['google_oauth_state'] = state
+#     request.session['google_oauth_user_id'] = request.user.id  # <<<<< Add this line
 
-    return redirect(authorization_url)
+#     return redirect(authorization_url)
 
-@api_view(['GET'])
-@permission_classes([permissions.AllowAny])
-def google_calendar_oauth2callback(request):
-    state = request.session.get('google_oauth_state')
-    user_id = request.session.get('google_oauth_user_id')
-    if not user_id:
-        return Response({"detail": "User session not found."}, status=400)
+class GoogleCalendarAuthStart(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": settings.GOOGLE_CLIENT_ID,
+                    "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
+                    "scopes": [
+                        "https://www.googleapis.com/auth/calendar.events",
+                        "https://www.googleapis.com/auth/calendar.readonly",
+                    ],
+                }
+            },
+            scopes=[
+                "https://www.googleapis.com/auth/calendar.events",
+                "https://www.googleapis.com/auth/calendar.readonly",
+            ],
+            redirect_uri=settings.GOOGLE_REDIRECT_URI,
+        )
+        authorization_url, state = flow.authorization_url(
+            access_type="offline",
+            include_granted_scopes="true",
+            prompt="consent",
+        )
+        request.session["google_oauth_state"] = state
+        request.session["google_oauth_user_id"] = request.user.id
+        return redirect(authorization_url)
+
+# @api_view(['GET'])
+# @permission_classes([permissions.AllowAny])
+# def google_calendar_oauth2callback(request):
+#     state = request.session.get('google_oauth_state')
+#     user_id = request.session.get('google_oauth_user_id')
+#     if not user_id:
+#         return Response({"detail": "User session not found."}, status=400)
     
-    User = get_user_model()
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        return Response({"detail": "User not found."}, status=404)
+#     User = get_user_model()
+#     try:
+#         user = User.objects.get(id=user_id)
+#     except User.DoesNotExist:
+#         return Response({"detail": "User not found."}, status=404)
 
-    flow = Flow.from_client_config(
-        {
-            "web": {
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
-                "scopes": [
-                    "https://www.googleapis.com/auth/calendar.events",
-                    "https://www.googleapis.com/auth/calendar.readonly",
-                ],
-            }
-        },
-        scopes=[
-            "https://www.googleapis.com/auth/calendar.events",
-            "https://www.googleapis.com/auth/calendar.readonly",
-        ],
-        state=state,
-        redirect_uri=settings.GOOGLE_REDIRECT_URI,
-    )
+#     flow = Flow.from_client_config(
+#         {
+#             "web": {
+#                 "client_id": settings.GOOGLE_CLIENT_ID,
+#                 "client_secret": settings.GOOGLE_CLIENT_SECRET,
+#                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+#                 "token_uri": "https://oauth2.googleapis.com/token",
+#                 "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
+#                 "scopes": [
+#                     "https://www.googleapis.com/auth/calendar.events",
+#                     "https://www.googleapis.com/auth/calendar.readonly",
+#                 ],
+#             }
+#         },
+#         scopes=[
+#             "https://www.googleapis.com/auth/calendar.events",
+#             "https://www.googleapis.com/auth/calendar.readonly",
+#         ],
+#         state=state,
+#         redirect_uri=settings.GOOGLE_REDIRECT_URI,
+#     )
 
-    authorization_response = request.build_absolute_uri()
-    flow.fetch_token(authorization_response=authorization_response)
+#     authorization_response = request.build_absolute_uri()
+#     flow.fetch_token(authorization_response=authorization_response)
 
-    credentials = flow.credentials
+#     credentials = flow.credentials
 
-    expiry = credentials.expiry
-    if expiry is not None and expiry.tzinfo is None:
-        expiry = expiry.replace(tzinfo=timezone.utc)
+#     expiry = credentials.expiry
+#     if expiry is not None and expiry.tzinfo is None:
+#         expiry = expiry.replace(tzinfo=timezone.utc)
 
-    user.google_access_token = credentials.token
-    user.google_refresh_token = credentials.refresh_token
-    user.google_token_expiry = expiry
-    user.save()
+#     user.google_access_token = credentials.token
+#     user.google_refresh_token = credentials.refresh_token
+#     user.google_token_expiry = expiry
+#     user.save()
 
-    return redirect("https://127.0.0.1:5173/profile")
+#     return redirect("https://127.0.0.1:5173/profile")
 
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def add_workout_to_calendar(request):
-    service = get_google_calendar_service(request.user)
-    if not service:
-        return Response({"detail": "Google Calendar authorization required."}, status=401)  # <-- Changed here
+class GoogleCalendarOAuth2Callback(APIView):
+    permission_classes = [permissions.AllowAny]
 
-    data = request.data
-    # Example data expected: {"summary": "Leg Day Workout", "start_time": "2025-08-15T18:00:00Z", "end_time": "2025-08-15T19:00:00Z"}
+    def get(self, request):
+        state = request.session.get("google_oauth_state")
+        user_id = request.session.get("google_oauth_user_id")
+        if not user_id:
+            return Response({"detail": "User session not found."}, status=400)
 
-    event = {
-        'summary': data.get('summary', 'Workout'),
-        'location': data.get('location', ''),
-        'description': data.get('description', ''),
-        'start': {'dateTime': data.get('start_time'), 'timeZone': 'UTC'},
-        'end': {'dateTime': data.get('end_time'), 'timeZone': 'UTC'},
-    }
-
-    created_event = service.events().insert(calendarId='primary', body=event).execute()
-
-    return Response({"detail": "Event created", "event_id": created_event.get('id')})
-
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-def google_calendar_status(request):
-    user = request.user
-
-    # Attempt to get a valid Google Calendar service
-    service = get_google_calendar_service(user)
-
-    connected = service is not None
-
-    # Force no caching on frontend
-    response = Response({"connected": connected})
-    response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    return response
-
-import requests
-
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def google_calendar_disconnect(request):
-    user = request.user
-
-    # Revoke the token with Google if it exists
-    if user.google_access_token:
+        User = get_user_model()
         try:
-            requests.post(
-                'https://oauth2.googleapis.com/revoke',
-                params={'token': user.google_access_token},
-                headers={'content-type': 'application/x-www-form-urlencoded'}
-            )
-        except Exception as e:
-            # Log but continue to clear local tokens
-            logger.error(f"Failed to revoke Google token for user {user.id}: {e}")
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found"}, status=404)
 
-    # Clear local tokens
-    user.google_access_token = None
-    user.google_refresh_token = None
-    user.google_token_expiry = None
-    user.save()
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": settings.GOOGLE_CLIENT_ID,
+                    "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
+                    "scopes": [
+                        "https://www.googleapis.com/auth/calendar.events",
+                        "https://www.googleapis.com/auth/calendar.readonly",
+                    ],
+                }
+            },
+            scopes=[
+                "https://www.googleapis.com/auth/calendar.events",
+                "https://www.googleapis.com/auth/calendar.readonly",
+            ],
+            state=state,
+            redirect_uri=settings.GOOGLE_REDIRECT_URI,
+        )
 
-    return Response({"message": "Google Calendar disconnected"})
+        flow.fetch_token(authorization_response=request.build_absolute_uri())
+        credentials = flow.credentials
+        expiry = credentials.expiry
+        if expiry is not None and expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
 
+        user.google_access_token = credentials.token
+        user.google_refresh_token = credentials.refresh_token
+        user.google_token_expiry = expiry
+        user.save()
+
+        return redirect("https://127.0.0.1:5173/profile")
+
+# @api_view(['POST'])
+# @permission_classes([permissions.IsAuthenticated])
+# def add_workout_to_calendar(request):
+#     service = get_google_calendar_service(request.user)
+#     if not service:
+#         return Response({"detail": "Google Calendar authorization required."}, status=401)  # <-- Changed here
+
+#     data = request.data
+#     # Example data expected: {"summary": "Leg Day Workout", "start_time": "2025-08-15T18:00:00Z", "end_time": "2025-08-15T19:00:00Z"}
+
+#     event = {
+#         'summary': data.get('summary', 'Workout'),
+#         'location': data.get('location', ''),
+#         'description': data.get('description', ''),
+#         'start': {'dateTime': data.get('start_time'), 'timeZone': 'UTC'},
+#         'end': {'dateTime': data.get('end_time'), 'timeZone': 'UTC'},
+#     }
+
+#     created_event = service.events().insert(calendarId='primary', body=event).execute()
+
+#     return Response({"detail": "Event created", "event_id": created_event.get('id')})
+
+class AddWorkoutToCalendar(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        service = get_google_calendar_service(request.user)
+        if not service:
+            return Response({"detail": "Google Calendar authorization required."}, status=401)
+
+        data = request.data
+        event = {
+            "summary": data.get("summary", "Workout"),
+            "location": data.get("location", ""),
+            "description": data.get("description", ""),
+            "start": {"dateTime": data.get("start_time"), "timeZone": "UTC"},
+            "end": {"dateTime": data.get("end_time"), "timeZone": "UTC"},
+        }
+        created_event = service.events().insert(calendarId="primary", body=event).execute()
+        return Response({"detail": "Event created", "event_id": created_event.get("id")})
+
+# @api_view(['GET'])
+# @permission_classes([permissions.IsAuthenticated])
+# def google_calendar_status(request):
+#     user = request.user
+
+#     # Attempt to get a valid Google Calendar service
+#     service = get_google_calendar_service(user)
+
+#     connected = service is not None
+
+#     # Force no caching on frontend
+#     response = Response({"connected": connected})
+#     response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+#     return response
+
+class GoogleCalendarStatus(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        service = get_google_calendar_service(request.user)
+        connected = service is not None
+        response = Response({"connected": connected})
+        response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return response
+
+# @api_view(['POST'])
+# @permission_classes([permissions.IsAuthenticated])
+# def google_calendar_disconnect(request):
+#     user = request.user
+
+#     # Revoke the token with Google if it exists
+#     if user.google_access_token:
+#         try:
+#             requests.post(
+#                 'https://oauth2.googleapis.com/revoke',
+#                 params={'token': user.google_access_token},
+#                 headers={'content-type': 'application/x-www-form-urlencoded'}
+#             )
+#         except Exception as e:
+#             # Log but continue to clear local tokens
+#             logger.error(f"Failed to revoke Google token for user {user.id}: {e}")
+
+#     # Clear local tokens
+#     user.google_access_token = None
+#     user.google_refresh_token = None
+#     user.google_token_expiry = None
+#     user.save()
+
+#     return Response({"message": "Google Calendar disconnected"})
+
+class GoogleCalendarDisconnect(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if user.google_access_token:
+            try:
+                requests.post(
+                    "https://oauth2.googleapis.com/revoke",
+                    params={"token": user.google_access_token},
+                    headers={"content-type": "application/x-www-form-urlencoded"},
+                )
+            except Exception as e:
+                import logging
+                logging.error(f"Failed to revoke Google token for user {user.id}: {e}")
+
+        user.google_access_token = None
+        user.google_refresh_token = None
+        user.google_token_expiry = None
+        user.save()
+        return Response({"message": "Google Calendar disconnected"})
