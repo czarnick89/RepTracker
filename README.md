@@ -28,15 +28,15 @@ RepTracker is a full-stack workout tracker app that allows users to log workouts
 ## Usage
 
 - Log in or register a new account  
-<img src="docs/screenshots/Login.png" width="600" />
+<img src="docs/screenshots/Login.png" width="400" />
 - Create a new workout and add exercises  
-<img src="docs/screenshots/Dashboard.png" width="600" />
+<img src="docs/screenshots/Dashboard.png" width="400" />
 - Add sets with reps and weight for each exercise 
-<img src="docs/screenshots/DashboardEdit.png" width="600" /> 
+<img src="docs/screenshots/DashboardEdit.png" width="400" /> 
 - Get exercise info, animated demonstrations, and instructions via ExerciseDB API call
-<img src="docs/screenshots/InfoModal.png" width="600" /> 
+<img src="docs/screenshots/InfoModal.png" width="400" /> 
 - Sync workouts to Google Calendar  
-<img src="docs/screenshots/Profile.png" width="600" /> 
+<img src="docs/screenshots/Profile.png" width="400" /> 
 
 ## Tech Stack
 
