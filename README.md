@@ -96,12 +96,14 @@ npm run dev
 ## Usage
 
 - Log in or register a new account  
+![Login](docs/screenshots/Login.png)
 - Create a new workout and add exercises  
+![Dashboard1](docs/screenshots/Dashboard.png)
 - Add sets with reps and weight for each exercise  
+![Dashboard2](docs/screenshots/DashboardEdit.png)
 - View workout history and track progress  
 - Sync workouts to Google Calendar  
-
-Screenshots or GIFs can be added here to show UI examples.
+![Profile](docs/screenshots/Profile.png)
 
 ## Testing
 
