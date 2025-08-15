@@ -25,6 +25,19 @@ RepTracker is a full-stack workout tracker app that allows users to log workouts
 - Cookie-based JWT authentication  
 - Dashboard for quick overview of progress  
 
+## Usage
+
+- Log in or register a new account  
+<img src="docs/screenshots/Login.png" width="600" />
+- Create a new workout and add exercises  
+<img src="docs/screenshots/Dashboard.png" width="600" />
+- Add sets with reps and weight for each exercise 
+<img src="docs/screenshots/DashboardEdit.png" width="600" /> 
+- Get exercise info, animated demonstrations, and instructions via ExerciseDB API call
+<img src="docs/screenshots/InfoModal.png" width="600" /> 
+- Sync workouts to Google Calendar  
+<img src="docs/screenshots/Profile.png" width="600" /> 
+
 ## Tech Stack
 
 - **Frontend:** React, Vite, Tailwind CSS  
@@ -92,18 +105,6 @@ npm install
 npm run dev
 ```
 12. Open your browser at the URL shown in the terminal (usually http://localhost:5173) to view the app.
-
-## Usage
-
-- Log in or register a new account  
-![Login](docs/screenshots/Login.png)
-- Create a new workout and add exercises  
-![Dashboard1](docs/screenshots/Dashboard.png)
-- Add sets with reps and weight for each exercise  
-![Dashboard2](docs/screenshots/DashboardEdit.png)
-- View workout history and track progress  
-- Sync workouts to Google Calendar  
-![Profile](docs/screenshots/Profile.png)
 
 ## Testing
 
