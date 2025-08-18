@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - ci-cd-test
 
 jobs:
   deploy:
@@ -17,7 +18,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H https://reptracker.duckdns.org >> ~/.ssh/known_hosts
+          ssh-keyscan -H reptracker.duckdns.org >> ~/.ssh/known_hosts
 
       - name: Run deploy script
-        run: ssh deploy@https://reptracker.duckdns.org "cd ~/RepTracker && ./deploy.sh"
+        run: ssh deploy@reptracker.duckdns.org "cd ~/RepTracker && ./deploy.sh"
