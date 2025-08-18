@@ -1,21 +1,31 @@
 from pathlib import Path
-from decouple import config
 from datetime import timedelta
 from corsheaders.defaults import default_headers
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # ===============================
 # BASE / PATHS / SECRET
 # ===============================
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'replace-me-with-a-secure-key')
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-FRONTEND_URL = config('FRONTEND_URL', default='https://localhost:5173')
-FRONTEND_PROFILE_URL = config('FRONTEND_PROFILE_URL', default=f'{FRONTEND_URL}/profile')
-BACKEND_URL = config('BACKEND_URL')
+# ===============================
+# URLs & Hosts
+# ===============================
+if DEBUG:
+    FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://localhost:5173')
+    BACKEND_URL = os.environ.get('BACKEND_URL', 'https://127.0.0.1:8000')
+else:
+    FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://reptracker.duckdns.org')
+    BACKEND_URL = os.environ.get('BACKEND_URL', 'https://reptracker.duckdns.org')
+
+
+
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # ===============================
 # APPLICATIONS
@@ -27,14 +37,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'sslserver',
     'django_extensions',
-
+    # App specific
     'users',
     'workouts',
 ]
@@ -81,11 +90,11 @@ WSGI_APPLICATION = 'reptrack_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='5432'),
+        'NAME': os.environ.get('DB_NAME', 'reptrack_db'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -136,15 +145,23 @@ SIMPLE_JWT = {
 # ===============================
 # CORS / CSRF
 # ===============================
-CSRF_TRUSTED_ORIGINS = config(
-    'CSRF_TRUSTED_ORIGINS',
-    default='https://127.0.0.1:5173'
-).split(',')
-
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ALLOWED_ORIGINS',
-    default='https://localhost:5173,https://127.0.0.1:5173'
-).split(',')
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS = [
+        "https://localhost:5173",
+        "https://127.0.0.1:5173",
+    ]
+    CORS_ALLOWED_ORIGINS = [
+        "https://localhost:5173",
+        "https://127.0.0.1:5173",
+    ]
+else:
+    # Production: read from environment
+    CSRF_TRUSTED_ORIGINS = os.environ.get(
+        'CSRF_TRUSTED_ORIGINS', 'https://reptracker.duckdns.org'
+    ).split(',')
+    CORS_ALLOWED_ORIGINS = os.environ.get(
+        'CORS_ALLOWED_ORIGINS', 'https://reptracker.duckdns.org'
+    ).split(',')
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + ["cache-control"]
@@ -170,44 +187,62 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ===============================
 # EMAIL
 # ===============================
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # change for production
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.example.com')
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.environ.get('APP_EMAIL')
+    EMAIL_HOST_PASSWORD = os.environ.get('APP_EMAIL_PW')
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # ===============================
 # THIRD-PARTY API KEYS
 # ===============================
-EXERCISE_DB_BASE_URL = config('EXERCISE_DB_BASE_URL', default='https://exercisedb.p.rapidapi.com')
-EXERCISE_DB_HOST = config('EXERCISE_DB_HOST', default='exercisedb.p.rapidapi.com')
+EXERCISE_DB_BASE_URL = os.environ.get('EXERCISE_DB_BASE_URL', 'https://exercisedb.p.rapidapi.com')
+EXERCISE_DB_HOST = os.environ.get('EXERCISE_DB_HOST', 'exercisedb.p.rapidapi.com')
 
-GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID')
-GOOGLE_CLIENT_SECRET = config('GOOGLE_SECRET')
-GOOGLE_REDIRECT_URI = config(
-    'GOOGLE_REDIRECT_URI',
-    default='https://127.0.0.1:8000/api/v1/workouts/google-calendar/oauth2callback'
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_SECRET')
+GOOGLE_REDIRECT_URI = os.environ.get(
+    'GOOGLE_REDIRECT_URI', f'{BACKEND_URL}/api/v1/workouts/google-calendar/oauth2callback'
 )
-GOOGLE_AUTH_URI = config('GOOGLE_AUTH_URI', default='https://accounts.google.com/o/oauth2/auth')
-GOOGLE_TOKEN_URI = config('GOOGLE_TOKEN_URI', default='https://oauth2.googleapis.com/token')
-GOOGLE_REVOKE_URI = config('GOOGLE_REVOKE_URI', default='https://oauth2.googleapis.com/revoke')
+GOOGLE_AUTH_URI = os.environ.get('GOOGLE_AUTH_URI', 'https://accounts.google.com/o/oauth2/auth')
+GOOGLE_TOKEN_URI = os.environ.get('GOOGLE_TOKEN_URI', 'https://oauth2.googleapis.com/token')
+GOOGLE_REVOKE_URI = os.environ.get('GOOGLE_REVOKE_URI', 'https://oauth2.googleapis.com/revoke')
 
 # ===============================
 # SESSIONS & SECURITY
 # ===============================
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+if DEBUG:
+    # Dev: self-signed cert, no HSTS, still HTTPS
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'None'
+    SECURE_SSL_REDIRECT = False  
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
+else:
+    # Production: full security
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'None'
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 1209600  # or higher
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
-SESSION_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SAMESITE = 'None'
-
-SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds (default)
-
+SESSION_COOKIE_AGE = 1209600  # 2 weeks
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False
 
-SECURE_SSL_REDIRECT = True
-SECURE_HSTS_SECONDS = 3600
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
