@@ -1,0 +1,23 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H https://reptracker.duckdns.org >> ~/.ssh/known_hosts
+
+      - name: Run deploy script
+        run: ssh deploy@https://reptracker.duckdns.org "cd ~/RepTracker && ./deploy.sh"
