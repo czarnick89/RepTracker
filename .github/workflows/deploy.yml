@@ -16,9 +16,9 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p $HOME/.ssh
-          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H reptracker.duckdns.org >> ~/.ssh/known_hosts
+          echo "${{ secrets.DEPLOY_KEY }}" > $HOME/.ssh/id_rsa
+          chmod 600 $HOME/.ssh/id_rsa
+          ssh-keyscan -H reptracker.duckdns.org >> $HOME/.ssh/known_hosts
 
       - name: Run deploy script
         run: ssh deploy@reptracker.duckdns.org "cd ~/RepTracker && ./deploy.sh"
