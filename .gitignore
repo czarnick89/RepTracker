@@ -1,4 +1,5 @@
 ProjectRoadmap.md
+CICDRoadMap.md
 
 # === Python / Django ===
 *.pyc
@@ -49,3 +50,6 @@ coverage.xml
 
 # Local SSL certificates
 *.pem
+
+reptracker-ci
+reptracker-ci.pub
