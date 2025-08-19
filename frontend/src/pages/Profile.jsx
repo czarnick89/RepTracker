@@ -44,9 +44,13 @@ export default function Profile() {
 
     try {
       // Use api to send calendar event data to backend
-      await api.post("/api/v1/workouts/google-calendar/create-event/", payload, {
-        withCredentials: true,
-      });
+      await api.post(
+        "/api/v1/workouts/google-calendar/create-event/",
+        payload,
+        {
+          withCredentials: true,
+        }
+      );
       alert("Workout scheduled!");
       setFormData({
         title: "",
@@ -87,7 +91,7 @@ export default function Profile() {
     if (loading || !user) return;
 
     api
-    // Use api to get user profile data
+      // Use api to get user profile data
       .get("/api/v1/users/profile/", {
         withCredentials: true,
         headers: { "Cache-Control": "no-cache" },
@@ -102,12 +106,14 @@ export default function Profile() {
   if (!profile) return <p>Loading profile...</p>;
 
   return (
-    <div className="bg-slate-900 min-h-screen flex flex-col md:flex-row items-center justify-center gap-10 px-6 py-12 pt-5">
+    <div className="bg-slate-900 min-h-screen flex flex-col items-start px-6 py-12 pt-5">
+      <div className="flex flex-col md:flex-row justify-center items-start gap-10 w-full max-w-7xl mx-auto">
       {/* Workout Scheduler Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-lg shadow-md max-w-md w-full p-6 space-y-5"
-      >{/* Workout Scheduler Form */}
+        className="bg-white rounded-lg shadow-md max-w-md w-full flex-1 p-6 space-y-5"
+      >
+
         <h2 className="text-2xl font-bold text-slate-800 text-center w-full border-b border-gray-300 pb-3">
           Workout Scheduler
         </h2>
@@ -168,7 +174,7 @@ export default function Profile() {
       </form>
 
       {/* User Profile & Password */}
-      <aside className="bg-white rounded-lg shadow-md p-8 max-w-md w-full flex flex-col items-center space-y-6">
+      <aside className="bg-white rounded-lg shadow-md max-w-md w-full flex-1 p-8 flex flex-col items-center space-y-6">
         <h2 className="text-2xl font-bold text-slate-800 text-center w-full border-b border-gray-300 pb-3">
           User Profile
         </h2>
@@ -176,8 +182,9 @@ export default function Profile() {
         {!googleCalendarConnected ? (
           <button
             onClick={() =>
-              (window.location.href =
-                `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/google-calendar/auth-start/`)
+              (window.location.href = `${
+                import.meta.env.VITE_BACKEND_URL
+              }/api/v1/workouts/google-calendar/auth-start/`)
             }
             className="w-full bg-blue-600 text-black py-3 rounded-md hover:bg-blue-700 transition shadow-md"
           >
@@ -223,6 +230,7 @@ export default function Profile() {
         {/* Change Password Form */}
         <ChangePasswordForm />
       </aside>
+      </div>
     </div>
   );
 }
