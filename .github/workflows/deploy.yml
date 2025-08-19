@@ -9,13 +9,49 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Step 2: Set up SSH key
       - name: Set up SSH key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.DEPLOY_KEY }}
 
+      # Step 3: Configure AWS CLI
+      - name: Configure AWS CLI
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Step 4: Get public IP of the runner
+      - name: Get runner public IP
+        id: runner_ip
+        run: |
+          echo "RUNNER_IP=$(curl -s https://checkip.amazonaws.com)/32" >> $GITHUB_ENV
+
+      # Step 5: Add runner IP to Security Group
+      - name: Whitelist runner IP for SSH
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr $RUNNER_IP || echo "IP already whitelisted"
+
+      # Step 6: Run deploy script
       - name: Run deploy script
         run: ssh -o StrictHostKeyChecking=no deploy@reptracker.duckdns.org "cd ~/RepTracker && ./deploy.sh"
+
+      # Step 7: Remove runner IP from Security Group
+      - name: Remove runner IP from Security Group
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.SG_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr $RUNNER_IP || echo "IP already removed"
