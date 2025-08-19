@@ -124,5 +124,3 @@ It is **not open for external contributions**. Any use, copying, or distribution
 
 This project is **not licensed** and is provided for **portfolio and educational purposes only**.  
 All rights are reserved by the author. No part of this project may be reused, copied, or distributed without explicit permission.
-
-cicd ssh dynamic
