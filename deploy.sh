@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR=/srv/reptracker
+APP_DIR=/home/deploy/RepTracker
 cd $APP_DIR
 
 echo "[1/4] Pulling latest code..."
@@ -10,7 +10,7 @@ git checkout main
 git pull --ff-only
 
 echo "[2/4] Backend setup..."
-source .venv/bin/activate
+source backend/.venv/bin/activate
 pip install -r backend/requirements.txt
 cd backend
 python manage.py migrate --noinput
