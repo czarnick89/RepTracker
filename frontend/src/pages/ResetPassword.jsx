@@ -30,7 +30,6 @@ export default function ResetPassword() {
         { password },
         {
           headers: { 'Content-Type': 'application/json' },
-          withCredentials: true,
         }
       );
 

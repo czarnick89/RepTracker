@@ -33,14 +33,12 @@ export default function Login() {
       // Send login request to backend via api
       await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/login/`,
-        { email, password },
-        { withCredentials: true }
+        { email, password }
       );
 
       // Fetch user profile after successful login
       const res = await api.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/profile/`,
-        { withCredentials: true }
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/profile/`
       );
       // Update authcontext with user data
       setUser(res.data);

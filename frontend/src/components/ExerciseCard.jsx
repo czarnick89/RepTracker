@@ -94,8 +94,7 @@ export default function ExerciseCard({
       .patch(
         // Use api to request the backend update the set reps, weight, or both
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/${setId}/`,
-        { reps: Number(newReps), weight: normalizeWeight(newWeight) },
-        { withCredentials: true }
+        { reps: Number(newReps), weight: normalizeWeight(newWeight) }
       )
       .catch((err) => console.error("Failed to update set", err));
   };
@@ -110,8 +109,7 @@ export default function ExerciseCard({
           exercise: exercise.id,
           reps: Number(reps),
           weight: normalizeWeight(weight),
-        },
-        { withCredentials: true }
+        }
       );
       return res.data; // return the newly created set for front end updating
     } catch (err) {
@@ -132,9 +130,7 @@ export default function ExerciseCard({
     api
       .delete(
         // Send delete request to backend for set
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/${setId}/`, {
-        withCredentials: true,
-      })
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/${setId}/`)
       .then(() => {
         setSets((prev) => prev.filter((s) => s.id !== setId)); // remove set from local state after delete on back end
       })

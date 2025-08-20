@@ -39,7 +39,6 @@ export default function Dashboard() {
       const res = await api.get(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/workouts/recent/`,
         {
-          withCredentials: true,
           params: {
             offset: reset ? 0 : offset, // Helps keep track of how many additional we have loaded using Load More Workouts button
             limit: PAGE_SIZE, // How many workouts to fetch per Load More Workouts button press
@@ -120,8 +119,7 @@ export default function Dashboard() {
       //    - newName is the exercise name provided by user
       const res = await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/exercises/`,
-        { workout: workoutId, name: newName },
-        { withCredentials: true }
+        { workout: workoutId, name: newName }
       );
       // 2. Update frontend state after backend confirms creation
       setExercisesByWorkout((prev) => {
@@ -192,8 +190,7 @@ export default function Dashboard() {
         {
           name: newWorkout.name,
           date: newWorkout.date,
-        },
-        { withCredentials: true }
+        }
       );
       // Add the newly created workout to the top of the workouts state array
       setWorkouts((prev) => [res.data, ...prev]);
@@ -274,8 +271,7 @@ export default function Dashboard() {
       await api.patch(
         // Send request to backend to save this change
         `/api/v1/workouts/exercises/${exerciseId}/`,
-        { weight_change_preference: newPreference },
-        { withCredentials: true }
+        { weight_change_preference: newPreference }
       );
     } catch (err) {
       console.error("Failed to update weight preference:", err);
