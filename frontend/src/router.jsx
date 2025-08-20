@@ -15,6 +15,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import GoogleCallback from "./pages/GoogleCallback";
 
 const router = createBrowserRouter([
   // Public routes (no login required)
@@ -42,6 +43,8 @@ const router = createBrowserRouter([
     children: [
       { path: "dashboard", element: <Dashboard /> },
       { path: "profile", element: <Profile /> },
+      { path: "google-calendar/callback", element: <GoogleCallback /> },
+      
     ],
   },
 

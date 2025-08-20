@@ -53,3 +53,6 @@ coverage.xml
 
 reptracker-ci
 reptracker-ci.pub
+
+*.crt
+*.key

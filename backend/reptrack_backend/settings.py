@@ -203,6 +203,7 @@ else:
 # ===============================
 EXERCISE_DB_BASE_URL = os.environ.get('EXERCISE_DB_BASE_URL', 'https://exercisedb.p.rapidapi.com')
 EXERCISE_DB_HOST = os.environ.get('EXERCISE_DB_HOST', 'exercisedb.p.rapidapi.com')
+RAPIDAPI_KEY=os.environ.get('RAPIDAPI_KEY')
 
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_SECRET')
@@ -212,6 +213,8 @@ GOOGLE_REDIRECT_URI = os.environ.get(
 GOOGLE_AUTH_URI = os.environ.get('GOOGLE_AUTH_URI', 'https://accounts.google.com/o/oauth2/auth')
 GOOGLE_TOKEN_URI = os.environ.get('GOOGLE_TOKEN_URI', 'https://oauth2.googleapis.com/token')
 GOOGLE_REVOKE_URI = os.environ.get('GOOGLE_REVOKE_URI', 'https://oauth2.googleapis.com/revoke')
+GOOGLE_API_CALENDAR_EVENTS=os.environ.get('GOOGLE_API_CALENDAR_EVENTS')
+GOOGLE_API_CALENDAR_READONLY=os.environ.get('GOOGLE_API_CALENDAR_READONLY')
 
 # ===============================
 # SESSIONS & SECURITY

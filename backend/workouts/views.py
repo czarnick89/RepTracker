@@ -10,7 +10,6 @@ from django.contrib.auth import get_user_model
 
 # Third-party imports
 import requests
-from decouple import config
 from rest_framework import viewsets, permissions, status as s
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import get_object_or_404
@@ -59,7 +58,7 @@ class ExerciseByNameProxy(APIView):
         
         url = f"{settings.EXERCISE_DB_BASE_URL}/exercises/name/{name}"
         headers = {
-            "X-RapidAPI-Key": config("RAPIDAPI_KEY"),
+            "X-RapidAPI-Key": settings.RAPIDAPI_KEY,
             "X-RapidAPI-Host": settings.EXERCISE_DB_HOST,
         }
         resp = requests.get(url, headers=headers)
@@ -84,7 +83,7 @@ class ExerciseGifProxy(APIView):
         url = f"{settings.EXERCISE_DB_BASE_URL}/image"
         params = {"exerciseId": exercise_db_id, "resolution": resolution}
         headers = {
-            "X-RapidAPI-Key": config("RAPIDAPI_KEY"),
+            "X-RapidAPI-Key": settings.RAPIDAPI_KEY,
             "X-RapidAPI-Host": settings.EXERCISE_DB_HOST,
         }
         resp = requests.get(url, headers=headers, params=params)
@@ -266,14 +265,14 @@ class GoogleCalendarAuthStart(APIView):
                     "token_uri": settings.GOOGLE_TOKEN_URI,
                     "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
                     "scopes": [
-                        config('GOOGLE_API_CALENDAR_EVENTS'),
-                        config('GOOGLE_API_CALENDAR_READONLY'),
+                        settings.GOOGLE_API_CALENDAR_EVENTS,
+                        settings.GOOGLE_API_CALENDAR_READONLY,
                     ],
                 }
             },
             scopes=[
-                config('GOOGLE_API_CALENDAR_EVENTS'),
-                config('GOOGLE_API_CALENDAR_READONLY'),
+                settings.GOOGLE_API_CALENDAR_EVENTS,
+                settings.GOOGLE_API_CALENDAR_READONLY,
             ],
             redirect_uri=settings.GOOGLE_REDIRECT_URI,
         )
@@ -290,29 +289,37 @@ class GoogleCalendarAuthStart(APIView):
         return redirect(authorization_url)
 
 class GoogleCalendarOAuth2Callback(APIView):
+    """
+    Receives `code` and `state` from the frontend, validates it,
+    exchanges the code for tokens, and saves them to the user.
+    """
     permission_classes = [permissions.AllowAny]
 
-    def get(self, request):
-        """
-        Handles the OAuth2 callback from Google:
-        - Retrieves state and user ID from session.
-        - Reconstructs the Flow object with same client config and state.
-        - Fetches tokens using authorization response from Google.
-        - Saves access, refresh tokens and expiry to the user model.
-        - Redirects user to the frontend profile page.
-        """
-        state = request.session.get("google_oauth_state")
-        user_id = request.session.get("google_oauth_user_id")
-        if not user_id:
-            return Response({"detail": "User session not found."}, status=400)
+    def post(self, request):
+        # Extract code and state from the POST payload
+        code = request.data.get("code")
+        state_from_frontend = request.data.get("state")
 
+        if not code or not state_from_frontend:
+            return Response({"detail": "Missing code or state."}, status=s.HTTP_400_BAD_REQUEST)
+
+        # Retrieve stored OAuth state and user ID from session
+        state_saved = request.session.get("google_oauth_state")
+        user_id = request.session.get("google_oauth_user_id")
+
+        if state_saved != state_from_frontend:
+            return Response({"detail": "Invalid state."}, status=s.HTTP_400_BAD_REQUEST)
+        if not user_id:
+            return Response({"detail": "User session not found."}, status=s.HTTP_400_BAD_REQUEST)
+
+        # Get the user
         User = get_user_model()
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
-            return Response({"detail": "User not found"}, status=404)
-        
-        # Rebuild flow with stored state
+            return Response({"detail": "User not found."}, status=s.HTTP_404_NOT_FOUND)
+
+        # Rebuild the OAuth flow object
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -322,32 +329,42 @@ class GoogleCalendarOAuth2Callback(APIView):
                     "token_uri": settings.GOOGLE_TOKEN_URI,
                     "redirect_uris": [settings.GOOGLE_REDIRECT_URI],
                     "scopes": [
-                        config('GOOGLE_API_CALENDAR_EVENTS'),
-                        config('GOOGLE_API_CALENDAR_READONLY'),
+                        settings.GOOGLE_API_CALENDAR_EVENTS,
+                        settings.GOOGLE_API_CALENDAR_READONLY,
                     ],
                 }
             },
             scopes=[
-                config('GOOGLE_API_CALENDAR_EVENTS'),
-                config('GOOGLE_API_CALENDAR_READONLY'),
+                settings.GOOGLE_API_CALENDAR_EVENTS,
+                settings.GOOGLE_API_CALENDAR_READONLY,
             ],
-            state=state,
             redirect_uri=settings.GOOGLE_REDIRECT_URI,
         )
-        # Exchange authorization code for access and refresh tokens
-        flow.fetch_token(authorization_response=request.build_absolute_uri())
+
+        # Exchange authorization code for tokens
+        try:
+            flow.fetch_token(code=code)
+        except Exception as e:
+            return Response({"detail": f"Failed to fetch token: {str(e)}"}, status=s.HTTP_400_BAD_REQUEST)
+
         credentials = flow.credentials
+
         # Ensure expiry has timezone info
         expiry = credentials.expiry
         if expiry is not None and expiry.tzinfo is None:
             expiry = expiry.replace(tzinfo=timezone.utc)
-        # Save tokens and expiry to user
+
+        # Save tokens and expiry to user model
         user.google_access_token = credentials.token
         user.google_refresh_token = credentials.refresh_token
         user.google_token_expiry = expiry
         user.save()
 
-        return redirect(settings.FRONTEND_PROFILE_URL)
+        # Clean up session
+        request.session.pop("google_oauth_state", None)
+        request.session.pop("google_oauth_user_id", None)
+
+        return Response({"detail": "Google Calendar linked successfully."}, status=s.HTTP_200_OK)
 
 class AddWorkoutToCalendar(APIView):
     permission_classes = [permissions.IsAuthenticated]
