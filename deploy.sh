@@ -7,7 +7,7 @@ cd $APP_DIR
 echo "[1/4] Pulling latest code..."
 git fetch --all
 git checkout main
-git pull --ff-only
+git reset --hard origin/main
 
 echo "[2/4] Backend setup..."
 source backend/.venv/bin/activate
