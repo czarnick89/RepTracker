@@ -47,9 +47,6 @@ export default function Profile() {
       await api.post(
         "/api/v1/workouts/google-calendar/create-event/",
         payload,
-        {
-          withCredentials: true,
-        }
       );
       alert("Workout scheduled!");
       setFormData({
@@ -73,7 +70,6 @@ export default function Profile() {
     const fetchStatus = async () => {
       try {
         const res = await api.get("/api/v1/workouts/google-calendar/status/", {
-          withCredentials: true,
           headers: { "Cache-Control": "no-cache" },
         });
         setGoogleCalendarConnected(res.data.connected); // Update state so it can be displayed on screen
@@ -93,7 +89,6 @@ export default function Profile() {
     api
       // Use api to get user profile data
       .get("/api/v1/users/profile/", {
-        withCredentials: true,
         headers: { "Cache-Control": "no-cache" },
       })
       .then((res) => setProfile(res.data)) // Store user profile data in state
@@ -201,7 +196,6 @@ export default function Profile() {
                   await api.post(
                     "/api/v1/workouts/google-calendar/disconnect/",
                     {},
-                    { withCredentials: true }
                   );
                   setGoogleCalendarConnected(false);
                   alert("Google Calendar disconnected");

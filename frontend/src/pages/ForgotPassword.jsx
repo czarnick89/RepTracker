@@ -20,7 +20,6 @@ export default function ForgotPassword() {
           headers: {
             "Content-Type": "application/json",
           },
-          withCredentials: true,
         }
       );
       setStatus("success");
