@@ -214,18 +214,38 @@ export default function ExerciseCard({
 
   // Validate weight input
   const isValidWeight = (val) => {
-    const num = Number(val);
+    const num = Number(String(val).replace(",", "."));
     return !isNaN(num) && num >= 0;
   };
 
   // Format numbers nicely for display
   const formatNumber = (num) => {
     if (num == null) return "";
-    // Convert to number first, then check if integer
+
+    // If it's a string, try to determine if it's user typing or a numeric string we can normalize
+    if (typeof num === "string") {
+      const s = num.trim();
+      if (s === "") return "";
+
+      // If user is in the middle of typing a decimal point (e.g. '1.' or '1,') leave it as-is
+      if (/[.,]$/.test(s)) return s;
+
+      // If the string is purely numeric (optional decimal with digits), normalize it
+      if (/^-?\d+(?:[.,]\d+)?$/.test(s)) {
+        const parsed = Number(s.replace(",", "."));
+        if (Number.isInteger(parsed)) return parsed.toString();
+        // Use 2 decimal places max, then strip trailing zeros (and trailing dot)
+        return parsed.toFixed(2).replace(/\.?0+$/, "");
+      }
+
+      // Otherwise leave non-numeric strings untouched
+      return s;
+    }
+
+    // For numeric values, format: integer as-is, otherwise up to 2 decimals without trailing zeros
     const n = Number(num);
-    return Number.isInteger(n)
-      ? n.toString()
-      : n.toFixed(2).replace(/\.?0+$/, "");
+    if (Number.isNaN(n)) return "";
+    return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace(/\.?0+$/, "");
   };
 
   // Handle blur event on a new set to save it to backend
@@ -250,7 +270,9 @@ export default function ExerciseCard({
   // Convert empty or invalid weight to 0
   const normalizeWeight = (weight) => {
     if (weight === "" || weight === null || weight === undefined) return 0;
-    return Number(weight);
+    // Accept comma as decimal separator (mobile keyboards/locales may use comma)
+    const parsed = parseFloat(String(weight).replace(",", "."));
+    return isNaN(parsed) ? 0 : parsed;
   };
 
   return (
@@ -415,7 +437,9 @@ export default function ExerciseCard({
                   );
                 }
               }}
-              step="0.5"
+              step="any"
+              inputMode="decimal"
+              pattern="^[0-9]*[.,]?[0-9]+$"
             />
             <span>LBS</span>
 
