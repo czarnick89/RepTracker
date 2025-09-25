@@ -14,6 +14,7 @@ export default function Dashboard() {
 
   // Temp IDs for client-side creation before backend returns actual IDs
   const [tempExerciseId, setTempExerciseId] = useState(-1);
+  const [focusExerciseId, setFocusExerciseId] = useState(null);
   const [tempWorkoutId, setTempWorkoutId] = useState(-1);
 
   // State for new items and deletions
@@ -85,30 +86,20 @@ export default function Dashboard() {
 
   // Function to add a new blank exercise to a workout
   const handleAddNewExercise = (workoutId) => {
-    // Update the exercisesByWorkout state
-    setExercisesByWorkout((prev) => {
-      // 1. Get existing exercises for this workout, or empty array if none
-      const prevExercises = prev[workoutId] || [];
+    // Compute a temp id to use for this new exercise so we can focus it after render
+    const tempId = tempExerciseId;
+    // Decrement tempExerciseId for next new exercise
+    setTempExerciseId((id) => id - 1);
 
-      // 2. Create a new "blank" exercise object
-      //    id uses tempExerciseId (negative numbers for unsaved exercises)
-      //    name is empty, sets is empty, workoutId links it to parent workout
-      const blankExercise = {
-        id: tempExerciseId,
-        name: "",
-        sets: [],
-        workoutId,
-      };
-      // 3. Decrement tempExerciseId for next new exercise
-      setTempExerciseId((id) => id - 1);
-      // 4. Return new exercisesByWorkout object
-      //    - copy existing state with ...prev
-      //    - replace the array for this workoutId with old exercises + new blank exercise
-      return {
-        ...prev,
-        [workoutId]: [...prevExercises, blankExercise],
-      };
+    // Update the exercisesByWorkout state with the new blank exercise
+    setExercisesByWorkout((prev) => {
+      const prevExercises = prev[workoutId] || [];
+      const blankExercise = { id: tempId, name: "", sets: [], workoutId };
+      return { ...prev, [workoutId]: [...prevExercises, blankExercise] };
     });
+
+    // Request that the newly-added exercise's name input receive focus
+    setFocusExerciseId(tempId);
   };
 
   // Function to save a newly added exercise to the backend
@@ -378,6 +369,8 @@ export default function Dashboard() {
                       newPreference
                     )
                   }
+                  autoFocus={exercise.id === focusExerciseId}
+                  onAutoFocusComplete={() => setFocusExerciseId(null)}
                 />
               ))}
             </div>
