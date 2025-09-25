@@ -10,6 +10,8 @@ export default function ExerciseCard({
   onDelete,
   showDeleteButton,
   onWeightPreferenceChange,
+  autoFocus,
+  onAutoFocusComplete,
 }) {
   const [exerciseName, setExerciseName] = useState(exercise.name); // State for exercise name
   const [sets, setSets] = useState(exercise.sets); // Local copy of sets to update UI, actual update of these values happen?
@@ -30,6 +32,7 @@ export default function ExerciseCard({
   const selectingFromDropdownRef = useRef(false); // Flag to prevent blur-triggered save when selecting from dropdown
 
   const weightInputRef = useRef(null); // Ref for weight input for potential programmatic focus
+  const nameInputRef = useRef(null); // Ref for the exercise name input so we can focus it
 
   const exerciseInfoCache = useRef({}); // Cache exercise info to avoid redundant API calls
 
@@ -66,6 +69,17 @@ export default function ExerciseCard({
       onExerciseNameSave(exercise, exerciseName); // Save exercise name via parent function
     }
   };
+
+  // Focus name input when parent requests via autoFocus prop
+  useEffect(() => {
+    if (autoFocus && nameInputRef.current) {
+      nameInputRef.current.focus();
+      // Move caret to end
+      const val = nameInputRef.current.value;
+      nameInputRef.current.setSelectionRange(val.length, val.length);
+      if (onAutoFocusComplete) onAutoFocusComplete();
+    }
+  }, [autoFocus, onAutoFocusComplete]);
 
   // Handle typing in exercise name input and filter dropdown suggestions
   const handleExerciseNameChange = (e) => {
@@ -293,6 +307,7 @@ export default function ExerciseCard({
           {/* Exercise name input */}
           <input
             type="text"
+            ref={nameInputRef}
             value={exerciseName}
             onChange={handleExerciseNameChange}
             onBlur={handleExerciseNameBlur}
