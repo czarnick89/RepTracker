@@ -166,6 +166,21 @@ export default function ExerciseCard({
     const blankSet = { id: tempId, reps: "", weight: "" };
     setSets((prev) => [...prev, blankSet]); // Add new set to state
     setNewSetId(tempId); // Keep track of the temp id
+
+    // Workaround for mobile: many mobile browsers will only open the keyboard
+    // if focus is called synchronously inside the user gesture event handler.
+    // The new weight input isn't in the DOM yet, so focus the already-mounted
+    // name input synchronously to open the keyboard, then the effect that
+    // focuses the weight input after render will transfer focus to it.
+    if (nameInputRef.current) {
+      try {
+        nameInputRef.current.focus();
+        const v = nameInputRef.current.value || "";
+        nameInputRef.current.setSelectionRange(v.length, v.length);
+      } catch (e) {
+        // ignore
+      }
+    }
   };
 
   // When a newSetId is set, attempt to focus the weight input reliably after render.
