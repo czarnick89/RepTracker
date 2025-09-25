@@ -33,6 +33,7 @@ export default function ExerciseCard({
 
   const weightInputRef = useRef(null); // Ref for weight input for potential programmatic focus
   const nameInputRef = useRef(null); // Ref for the exercise name input so we can focus it
+  const focusTimerRef = useRef(null);
 
   const exerciseInfoCache = useRef({}); // Cache exercise info to avoid redundant API calls
 
@@ -165,12 +166,35 @@ export default function ExerciseCard({
     const blankSet = { id: tempId, reps: "", weight: "" };
     setSets((prev) => [...prev, blankSet]); // Add new set to state
     setNewSetId(tempId); // Keep track of the temp id
-
-    // Focus weight input 
-    setTimeout(() => {
-      if (weightInputRef.current) weightInputRef.current.focus();
-    }, 100);
   };
+
+  // When a newSetId is set, attempt to focus the weight input reliably after render.
+  useEffect(() => {
+    if (newSetId == null) return;
+
+    // Wait for the browser to render the new input. Use rAF then a small timeout
+    const raf = requestAnimationFrame(() => {
+      focusTimerRef.current = setTimeout(() => {
+        if (weightInputRef.current) {
+          try {
+            weightInputRef.current.focus();
+            const val = weightInputRef.current.value || "";
+            weightInputRef.current.setSelectionRange(val.length, val.length);
+          } catch (e) {
+            // ignore focus errors
+          }
+        }
+      }, 30);
+    });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      if (focusTimerRef.current) {
+        clearTimeout(focusTimerRef.current);
+        focusTimerRef.current = null;
+      }
+    };
+  }, [newSetId, sets]);
 
   // Fetch exercise info from API or cache
   const fetchExerciseInfo = async (name) => {
