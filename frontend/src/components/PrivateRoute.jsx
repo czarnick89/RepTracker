@@ -1,12 +1,13 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import Loading from "./Loading";
 
 // Component to protect routes that require authentication
 export default function PrivateRoute({ children }) {
   const { user, loading } = useAuth(); // Get current user and loading state from AuthContext
   const location = useLocation(); // Get current location to redirect back after login
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <Loading message="Checking authentication..." fullscreen={true} />;
 
   // If user is not logged in, redirect to login page
   // `state.from` keeps track of original route to redirect after successful login
