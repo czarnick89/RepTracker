@@ -16,20 +16,42 @@
  * - `failedQueue` → holds promises for requests waiting for refresh to complete.
  *
  * Logout behavior:
- * - Uses `performLogout` utility, then forces navigation to `/logout`.
+ * - Uses `performLogout` utility to run the app's logout flow (which calls the
+ *   backend logout endpoint using a raw axios request) and then navigates the
+ *   browser to the login page (`/login`).
  */
 
 import axios from "axios";
 import { performLogout } from "../utils/logout";
 
 function interceptorLogout() {
-  // allows the interceptor to call performLogout and force logout (skipping success using the first empty function)
-  performLogout(
-    () => {},
-    () => {
-      window.location.href = "/logout"; // hard refresh and state is cleared
+  // Called when refresh fails and the interceptor decides to force logout.
+  // Mark that the interceptor forced a logout so the AuthContext can avoid
+  // immediately trying to refresh again and causing a redirect loop.
+  try {
+    sessionStorage.setItem("auth:interceptor_logout", Date.now().toString());
+  } catch (e) {
+    /* ignore sessionStorage errors */
+  }
+
+  // Try to run the standard logout flow so the backend invalidates the session
+  // (performLogout uses raw axios so it won't be intercepted). If that fails,
+  // fall back to a hard redirect.
+  try {
+    performLogout(null, (path) => {
+      try {
+        window.location.href = path || "/login";
+      } catch (_) {
+        /* ignore */
+      }
+    });
+  } catch (e) {
+    try {
+      window.location.href = "/login";
+    } catch (_) {
+      /* ignore */
     }
-  );
+  }
 }
 
 const api = axios.create({
@@ -82,6 +104,11 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config; // Store the request that caused the error
 
+    // Guard: if there's no original request/config (network errors, etc.), just reject
+    if (!originalRequest || !originalRequest.url) {
+      return Promise.reject(error);
+    }
+
     // If the failed request is a refresh token or logout call, reject immediately
     if (
       originalRequest.url.includes("/token/refresh/") ||
@@ -113,8 +140,8 @@ api.interceptors.response.use(
       isRefreshing = true; // Indicate a refresh is in progress
 
       try {
-        // Attempt to refresh the token
-        await api.post("/api/v1/users/token/refresh/");
+  // Attempt to refresh the token using a raw axios call (bypass this interceptor)
+  await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/v1/users/token/refresh/`, {}, { withCredentials: true });
 
         processQueue(null); // Resolve any queued requests with new token
         return api(originalRequest); // Retry the original request now
