@@ -4,6 +4,7 @@ import api from "../api/axiosRefreshInterceptor";
 import ExerciseCard from "../components/ExerciseCard";
 import ConfirmModal from "../components/ConfirmModal";
 import WorkoutTitle from "../components/WorkoutTitle";
+import Loading from "../components/Loading";
 
 // Dashboard component: displays recent workouts, allows creating/editing/deleting workouts and exercises
 export default function Dashboard() {
@@ -270,7 +271,7 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) return <p>Loading workouts...</p>;
+  if (loading) return <Loading message="Loading workouts..." fullscreen={true} />;
 
   return (
     <>

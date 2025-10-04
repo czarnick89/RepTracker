@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../api/axiosRefreshInterceptor";
 import { useAuth } from "../contexts/AuthContext";
 import ChangePasswordForm from "../components/ChangePasswordForm";
+import Loading from "../components/Loading";
 
 // Profile page component: shows user info, allows password change, and workout scheduling
 export default function Profile() {
@@ -95,10 +96,10 @@ export default function Profile() {
       .catch(() => setError("Failed to load profile."));
   }, [loading, user]);
 
-  if (loading) return <p>Checking authentication...</p>;
+  if (loading) return <Loading message="Checking authentication..." fullscreen={true} />;
   if (!user) return null;
   if (error) return <p className="text-red-500">{error}</p>;
-  if (!profile) return <p>Loading profile...</p>;
+  if (!profile) return <Loading message="Loading profile..." fullscreen={false} />;
 
   return (
     <div className="bg-slate-900 min-h-screen flex flex-col items-start px-6 py-12 pt-5">

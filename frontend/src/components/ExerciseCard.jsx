@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import api from "../api/axiosRefreshInterceptor";
 import { exerciseNames } from "../data/exerciseNames";
 import InfoModal from "./InfoModal";
+import Loading from "./Loading";
 import { getExerciseByName, getExerciseGifUrl } from "../api/exerciseDB";
 
 export default function ExerciseCard({
@@ -384,7 +385,7 @@ export default function ExerciseCard({
           onClose={() => setIsInfoModalOpen(false)}
         >
           {loadingInfo ? (
-            <p>Loading exercise info...</p>
+            <Loading message="Loading exercise info..." fullscreen={false} />
           ) : errorInfo ? (
             <p className="text-red-500">{errorInfo}</p>
           ) : exerciseInfo ? (
