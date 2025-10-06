@@ -56,3 +56,5 @@ reptracker-ci.pub
 
 *.crt
 *.key
+
+zap/
