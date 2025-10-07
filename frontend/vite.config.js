@@ -8,4 +8,20 @@ export default defineConfig({
   server: {
     https: true,
   },
+  // Security / production build tweaks: disable sourcemaps and strip comments
+  // to avoid exposing developer comments or source maps in production.
+  build: {
+    sourcemap: false,
+    // Use terser for production minification so we can remove comments reliably
+    minify: 'terser',
+    terserOptions: {
+      format: {
+        // Do not emit any comments in the output
+        comments: false,
+      },
+      // optional: keep class and function names if you need them for logging/debugging
+      keep_classnames: false,
+      keep_fnames: false,
+    },
+  },
 })
