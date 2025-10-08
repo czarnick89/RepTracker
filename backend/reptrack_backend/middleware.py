@@ -1,4 +1,6 @@
 from django.utils.deprecation import MiddlewareMixin
+from django.http import HttpResponseBadRequest
+import re
 
 
 class CacheControlMiddleware(MiddlewareMixin):
@@ -39,3 +41,44 @@ class CacheControlMiddleware(MiddlewareMixin):
             response["Cache-Control"] = self.SENSITIVE_CACHE
 
         return response
+
+
+class BlockSuspiciousParamsMiddleware(MiddlewareMixin):
+    """
+    Reject requests that contain suspicious parameter names commonly used in
+    Spring4Shell/Payload probes, e.g. keys that start with `class.` or contain
+    `module.classLoader`. This is defensive and intended to return a 400 for
+    obvious probe attempts targeting Java SOAP/Servlet environments.
+
+    This is a quick mitigation for scanners generating payloads against non-Java
+    backends (like this Django app) and will reduce false-positive findings in
+    automated scanners.
+    """
+
+    SUSPICIOUS_KEY_RE = re.compile(r"(^|\.|\[)(class|module|ClassLoader)\b", re.IGNORECASE)
+
+    def process_request(self, request):
+        # Check GET params
+        for k in request.GET.keys():
+            if self.SUSPICIOUS_KEY_RE.search(k):
+                return HttpResponseBadRequest("Bad request")
+
+        # Check POST params (form-encoded) and query string keys
+        # For JSON bodies we can check the raw payload string for suspicious tokens
+        for k in request.POST.keys():
+            if self.SUSPICIOUS_KEY_RE.search(k):
+                return HttpResponseBadRequest("Bad request")
+
+        try:
+            content_type = request.META.get("CONTENT_TYPE", "")
+            if "application/json" in content_type:
+                # Peek at the body safely (it may be a bytes-like object)
+                body = request.body.decode("utf-8", errors="ignore")
+                if "class.module.classLoader" in body or "class.module" in body:
+                    return HttpResponseBadRequest("Bad request")
+        except Exception:
+            # If anything goes wrong reading the body, don't block the request
+            # based on body parsing — only block based on param keys above.
+            pass
+
+        return None
