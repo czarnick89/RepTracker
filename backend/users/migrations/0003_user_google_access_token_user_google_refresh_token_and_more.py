@@ -10,19 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='user',
-            name='google_access_token',
-            field=models.TextField(blank=True, null=True),
-        ),
-        migrations.AddField(
-            model_name='user',
-            name='google_refresh_token',
-            field=models.TextField(blank=True, null=True),
-        ),
-        migrations.AddField(
-            model_name='user',
-            name='google_token_expiry',
-            field=models.DateTimeField(blank=True, null=True),
-        ),
     ]
