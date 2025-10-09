@@ -25,6 +25,7 @@ from .serializers import (
     UserProfileSerializer,
     MyTokenObtainPairSerializer,
 )
+from .throttles import LoginThrottle
 
 # ---------------------------
 # Model reference
@@ -98,6 +99,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
     Handles user login and sets HttpOnly JWT cookies.
     """
     serializer_class = MyTokenObtainPairSerializer
+    throttle_classes = [LoginThrottle]
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
