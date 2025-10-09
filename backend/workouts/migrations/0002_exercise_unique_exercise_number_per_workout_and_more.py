@@ -12,16 +12,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddConstraint(
-            model_name='exercise',
-            constraint=models.UniqueConstraint(fields=('workout', 'exercise_number'), name='unique_exercise_number_per_workout'),
-        ),
-        migrations.AddConstraint(
-            model_name='set',
-            constraint=models.UniqueConstraint(fields=('exercise', 'set_number'), name='unique_set_number_per_exercise'),
-        ),
-        migrations.AddConstraint(
-            model_name='workout',
-            constraint=models.UniqueConstraint(fields=('user', 'workout_number'), name='unique_workout_number_per_user'),
-        ),
     ]
