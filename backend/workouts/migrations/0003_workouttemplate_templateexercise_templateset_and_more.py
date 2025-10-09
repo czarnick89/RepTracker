@@ -3,7 +3,7 @@
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
-from django.db.migrations.operations.models import CreateModel
+from django.db.migrations.operations.models import CreateModel, AddConstraint
 
 
 class CreateModelIfNotExists(CreateModel):
@@ -18,6 +18,27 @@ class CreateModelIfNotExists(CreateModel):
             super().database_forwards(app_label, schema_editor, from_state, to_state)
         # If table exists, skip creation but still update state
         # State is updated by the operation's state_forwards method
+
+
+class AddConstraintIfNotExists(AddConstraint):
+    """AddConstraint operation that only adds the constraint if it doesn't exist."""
+    
+    def database_forwards(self, app_label, schema_editor, from_state, to_state):
+        model = from_state.apps.get_model(app_label, self.model_name)
+        table_name = model._meta.db_table
+        constraint_name = self.constraint.name
+        
+        # Check if constraint exists (PostgreSQL specific)
+        cursor = schema_editor.connection.cursor()
+        cursor.execute("""
+            SELECT 1 FROM information_schema.table_constraints 
+            WHERE constraint_name = %s AND table_name = %s
+        """, [constraint_name, table_name])
+        
+        if not cursor.fetchone():
+            # Constraint doesn't exist, add it
+            super().database_forwards(app_label, schema_editor, from_state, to_state)
+        # If constraint exists, skip but still update state
 
 
 class Migration(migrations.Migration):
@@ -71,11 +92,11 @@ class Migration(migrations.Migration):
                 'constraints': [models.UniqueConstraint(fields=('exercise', 'set_number'), name='unique_templateset_set_number_per_exercise')],
             },
         ),
-        migrations.AddConstraint(
+        AddConstraintIfNotExists(
             model_name='workouttemplate',
             constraint=models.UniqueConstraint(fields=('user', 'template_number'), name='unique_template_number_per_user'),
         ),
-        migrations.AddConstraint(
+        AddConstraintIfNotExists(
             model_name='templateexercise',
             constraint=models.UniqueConstraint(fields=('workout_template', 'exercise_number'), name='unique_exercise_number_per_template'),
         ),
