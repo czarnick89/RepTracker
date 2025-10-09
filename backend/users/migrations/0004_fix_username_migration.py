@@ -8,20 +8,40 @@ def remove_username_if_exists(apps, schema_editor):
     Safely remove username column if it exists.
     This handles the case where the production database was created
     with a custom User model that doesn't have the username field.
+    Works with both SQLite and PostgreSQL.
     """
     db = schema_editor.connection
     table_name = 'users_user'
     column_name = 'username'
 
-    # Check if the column exists
+    # Check if the column exists using database-agnostic approach
     with db.cursor() as cursor:
-        cursor.execute("""
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_name = %s AND column_name = %s
-        """, [table_name, column_name])
+        db_vendor = db.vendor
 
-        if cursor.fetchone():
+        if db_vendor == 'postgresql':
+            # PostgreSQL approach
+            cursor.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = %s AND column_name = %s
+            """, [table_name, column_name])
+        elif db_vendor == 'sqlite':
+            # SQLite approach - check sqlite_master table
+            cursor.execute("""
+                PRAGMA table_info(users_user)
+            """)
+            columns = cursor.fetchall()
+            # Check if username column exists in the results
+            column_exists = any(col[1] == 'username' for col in columns)
+        else:
+            # For other databases, assume column exists to be safe
+            column_exists = True
+
+        # For PostgreSQL, check if we got a result
+        if db_vendor == 'postgresql':
+            column_exists = cursor.fetchone() is not None
+
+        if column_exists:
             # Column exists, remove it
             schema_editor.remove_field('users', 'User', 'username')
 
