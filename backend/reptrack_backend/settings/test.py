@@ -1,5 +1,5 @@
 # Test settings for Django
-from .settings import *
+from .base import *
 
 # Use in-memory SQLite for tests
 DATABASES = {
