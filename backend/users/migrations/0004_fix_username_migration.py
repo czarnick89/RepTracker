@@ -43,9 +43,10 @@ def remove_username_if_exists(apps, schema_editor):
 
         if column_exists:
             # Column exists, remove it
-            # Get the User model and remove the field
+            # Get the User model and the username field
             User = apps.get_model('users', 'User')
-            schema_editor.remove_field(User, 'username')
+            username_field = User._meta.get_field('username')
+            schema_editor.remove_field(User, username_field)
 
 
 def reverse_remove_username_if_exists(apps, schema_editor):
