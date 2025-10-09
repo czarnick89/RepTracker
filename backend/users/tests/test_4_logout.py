@@ -3,7 +3,10 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 @pytest.mark.django_db
-def test_logout_success(api_client, verified_user):
+def test_logout_success(api_client, verified_user, settings):
+    # Disable throttling for this test
+    settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']['login'] = None
+
     # First, login to get JWT cookies set
     login_url = reverse('token_obtain_pair')
     login_data = {"email": verified_user.email, "password": "strongpassword123"}

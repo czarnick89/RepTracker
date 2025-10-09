@@ -32,7 +32,10 @@ def test_login_success(client):
     assert refresh_cookie["samesite"] == "None"
 
 @pytest.mark.django_db
-def test_login_fail(client):
+def test_login_fail(client, settings):
+    # Disable throttling for this test
+    settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']['login'] = None
+
     user = User.objects.create_user(email="loginfail@example.com", password="password123", is_active=True)
 
     url = reverse("token_obtain_pair")
