@@ -3,6 +3,45 @@
 from django.db import migrations, models
 
 
+def add_constraint_if_not_exists(apps, schema_editor):
+    """Add unique constraints if they don't already exist."""
+    from django.db import connection
+    
+    constraints_to_add = [
+        ('workouts_exercise', 'unique_exercise_number_per_workout', 
+         'UNIQUE (workout_id, exercise_number)'),
+        ('workouts_set', 'unique_set_number_per_exercise', 
+         'UNIQUE (exercise_id, set_number)'),
+        ('workouts_workout', 'unique_workout_number_per_user', 
+         'UNIQUE (user_id, workout_number)'),
+    ]
+    
+    with connection.cursor() as cursor:
+        for table_name, constraint_name, constraint_sql in constraints_to_add:
+            # Check if constraint exists
+            if connection.vendor == 'postgresql':
+                cursor.execute("""
+                    SELECT 1 FROM information_schema.table_constraints 
+                    WHERE constraint_name = %s AND table_name = %s
+                """, [constraint_name, table_name])
+            elif connection.vendor == 'sqlite3':
+                cursor.execute("""
+                    SELECT 1 FROM sqlite_master 
+                    WHERE type='index' AND name = ?
+                """, [constraint_name])
+            else:
+                # For other databases, try to add and ignore errors
+                try:
+                    cursor.execute(f"ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} {constraint_sql}")
+                except:
+                    pass
+                continue
+            
+            if not cursor.fetchone():
+                # Constraint doesn't exist, add it
+                cursor.execute(f"ALTER TABLE {table_name} ADD CONSTRAINT {constraint_name} {constraint_sql}")
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,18 +49,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Add the unique constraints that are defined in the model Meta classes
-        # These should be created automatically, but we'll ensure they exist
-        migrations.AddConstraint(
-            model_name='exercise',
-            constraint=models.UniqueConstraint(fields=('workout', 'exercise_number'), name='unique_exercise_number_per_workout'),
-        ),
-        migrations.AddConstraint(
-            model_name='set',
-            constraint=models.UniqueConstraint(fields=('exercise', 'set_number'), name='unique_set_number_per_exercise'),
-        ),
-        migrations.AddConstraint(
-            model_name='workout',
-            constraint=models.UniqueConstraint(fields=('user', 'workout_number'), name='unique_workout_number_per_user'),
-        ),
+        migrations.RunPython(add_constraint_if_not_exists, migrations.RunPython.noop),
     ]
