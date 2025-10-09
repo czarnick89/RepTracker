@@ -3,6 +3,21 @@
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
+from django.db.migrations.operations.models import CreateModel
+
+
+class CreateModelIfNotExists(CreateModel):
+    """CreateModel operation that only creates the table if it doesn't exist."""
+    
+    def database_forwards(self, app_label, schema_editor, from_state, to_state):
+        model = to_state.apps.get_model(app_label, self.name)
+        if not schema_editor.connection.introspection.table_names():
+            schema_editor.connection.introspection.table_names()  # refresh
+        table_name = model._meta.db_table
+        if table_name not in schema_editor.connection.introspection.table_names():
+            super().database_forwards(app_label, schema_editor, from_state, to_state)
+        # If table exists, skip creation but still update state
+        # State is updated by the operation's state_forwards method
 
 
 class Migration(migrations.Migration):
@@ -13,7 +28,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
+        CreateModelIfNotExists(
             name='WorkoutTemplate',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -28,7 +43,7 @@ class Migration(migrations.Migration):
                 'ordering': ['template_number'],
             },
         ),
-        migrations.CreateModel(
+        CreateModelIfNotExists(
             name='TemplateExercise',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -42,7 +57,7 @@ class Migration(migrations.Migration):
                 'ordering': ['exercise_number'],
             },
         ),
-        migrations.CreateModel(
+        CreateModelIfNotExists(
             name='TemplateSet',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
