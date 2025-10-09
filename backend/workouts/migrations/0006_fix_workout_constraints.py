@@ -3,101 +3,6 @@
 from django.db import migrations, models
 
 
-def add_workout_constraints_safely(apps, schema_editor):
-    """
-    Add workout-related unique constraints if they don't already exist.
-    Handles both PostgreSQL (production) and SQLite (CI/CD) databases.
-    """
-    db = schema_editor.connection
-
-    # Constraints to potentially add
-    constraints_to_add = [
-        {
-            'model': 'Exercise',
-            'constraint': models.UniqueConstraint(fields=('workout', 'exercise_number'), name='unique_exercise_number_per_workout'),
-        },
-        {
-            'model': 'Set',
-            'constraint': models.UniqueConstraint(fields=('exercise', 'set_number'), name='unique_set_number_per_exercise'),
-        },
-        {
-            'model': 'Workout',
-            'constraint': models.UniqueConstraint(fields=('user', 'workout_number'), name='unique_workout_number_per_user'),
-        },
-    ]
-
-    with db.cursor() as cursor:
-        for constraint_info in constraints_to_add:
-            constraint_name = constraint_info['constraint'].name
-            constraint_exists = False
-
-            if db.vendor == 'postgresql':
-                # Check if constraint exists in PostgreSQL
-                cursor.execute("""
-                    SELECT 1 FROM information_schema.table_constraints
-                    WHERE constraint_name = %s
-                """, [constraint_name])
-                constraint_exists = cursor.fetchone() is not None
-
-            elif db.vendor == 'sqlite':
-                # Check if index exists in SQLite (SQLite uses indexes for unique constraints)
-                cursor.execute("""
-                    SELECT name FROM sqlite_master
-                    WHERE type='index' AND name=?
-                """, [constraint_name])
-                constraint_exists = cursor.fetchone() is not None
-
-            if not constraint_exists:
-                # Add the constraint
-                model = apps.get_model('workouts', constraint_info['model'].lower())
-                schema_editor.add_constraint(model, constraint_info['constraint'])
-
-
-def remove_workout_constraints_safely(apps, schema_editor):
-    """
-    Remove workout constraints if they exist (reverse migration).
-    """
-    db = schema_editor.connection
-
-    # Constraints to potentially remove
-    constraints_to_remove = [
-        ('Exercise', 'unique_exercise_number_per_workout'),
-        ('Set', 'unique_set_number_per_exercise'),
-        ('Workout', 'unique_workout_number_per_user'),
-    ]
-
-    with db.cursor() as cursor:
-        for model_name, constraint_name in constraints_to_remove:
-            constraint_exists = False
-
-            if db.vendor == 'postgresql':
-                cursor.execute("""
-                    SELECT 1 FROM information_schema.table_constraints
-                    WHERE constraint_name = %s
-                """, [constraint_name])
-                constraint_exists = cursor.fetchone() is not None
-
-            elif db.vendor == 'sqlite':
-                cursor.execute("""
-                    SELECT name FROM sqlite_master
-                    WHERE type='index' AND name=?
-                """, [constraint_name])
-                constraint_exists = cursor.fetchone() is not None
-
-            if constraint_exists:
-                # Remove the constraint
-                model = apps.get_model('workouts', model_name.lower())
-                # For removal, we need to create a constraint object to match
-                if model_name == 'Exercise':
-                    constraint = models.UniqueConstraint(fields=('workout', 'exercise_number'), name=constraint_name)
-                elif model_name == 'Set':
-                    constraint = models.UniqueConstraint(fields=('exercise', 'set_number'), name=constraint_name)
-                elif model_name == 'Workout':
-                    constraint = models.UniqueConstraint(fields=('user', 'workout_number'), name=constraint_name)
-
-                schema_editor.remove_constraint(model, constraint)
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -105,8 +10,18 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(
-            add_workout_constraints_safely,
-            remove_workout_constraints_safely
+        # Add the unique constraints that are defined in the model Meta classes
+        # These should be created automatically, but we'll ensure they exist
+        migrations.AddConstraint(
+            model_name='exercise',
+            constraint=models.UniqueConstraint(fields=('workout', 'exercise_number'), name='unique_exercise_number_per_workout'),
+        ),
+        migrations.AddConstraint(
+            model_name='set',
+            constraint=models.UniqueConstraint(fields=('exercise', 'set_number'), name='unique_set_number_per_exercise'),
+        ),
+        migrations.AddConstraint(
+            model_name='workout',
+            constraint=models.UniqueConstraint(fields=('user', 'workout_number'), name='unique_workout_number_per_user'),
         ),
     ]
