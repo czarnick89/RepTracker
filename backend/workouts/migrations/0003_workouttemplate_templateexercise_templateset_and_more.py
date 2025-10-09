@@ -40,7 +40,7 @@ class AddConstraintIfNotExists(AddConstraint):
             """, [constraint_name, table_name])
             exists = cursor.fetchone()
             
-        elif db_backend == 'sqlite':
+        elif db_backend == 'sqlite3':
             # SQLite: Check sqlite_master for indexes (unique constraints create indexes)
             cursor = schema_editor.connection.cursor()
             cursor.execute("""
