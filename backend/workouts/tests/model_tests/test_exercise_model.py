@@ -33,3 +33,31 @@ class TestExerciseModel:
         Exercise.objects.create(workout=workout, name="Squat", exercise_number=1)
         with pytest.raises(IntegrityError):
             Exercise.objects.create(workout=workout, name="Deadlift", exercise_number=1)
+
+    def test_weight_change_preference_default(self, workout):
+        """Test that weight_change_preference defaults to 'same'."""
+        exercise = Exercise.objects.create(workout=workout, name="Bench Press", exercise_number=1)
+        assert exercise.weight_change_preference == 'same'
+
+    def test_weight_change_preference_choices(self, workout):
+        """Test valid weight_change_preference choices."""
+        # Test all valid choices
+        for choice in ['increase', 'decrease', 'same']:
+            exercise = Exercise.objects.create(
+                workout=workout, 
+                name=f"Exercise {choice}", 
+                exercise_number=10 + ['increase', 'decrease', 'same'].index(choice),
+                weight_change_preference=choice
+            )
+            assert exercise.weight_change_preference == choice
+
+    def test_exercise_number_can_be_null(self, workout):
+        """Test that exercise_number can be null."""
+        exercise = Exercise.objects.create(workout=workout, name="Test Exercise")
+        assert exercise.exercise_number is None
+        assert exercise.name == "Test Exercise"
+
+    def test_exercise_number_can_be_blank(self, workout):
+        """Test that exercise_number can be blank."""
+        exercise = Exercise.objects.create(workout=workout, name="Test Exercise", exercise_number=None)
+        assert exercise.exercise_number is None

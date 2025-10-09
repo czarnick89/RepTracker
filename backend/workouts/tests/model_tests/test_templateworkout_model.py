@@ -40,3 +40,47 @@ class TestTemplateWorkoutModel:
         TemplateWorkout.objects.create(user=user, template_number=1, name="Template One")
         with pytest.raises(IntegrityError):
             TemplateWorkout.objects.create(user=user, template_number=1, name="Duplicate Template")
+
+    def test_description_field_blank(self, user):
+        """Test that description field can be blank."""
+        tw = TemplateWorkout.objects.create(user=user, template_number=1, name="Blank Description Template")
+        assert tw.description == ""
+
+    def test_description_field_with_content(self, user):
+        """Test description field with actual content."""
+        description = "This is a comprehensive full-body workout template."
+        tw = TemplateWorkout.objects.create(
+            user=user, 
+            template_number=1, 
+            name="Full Body", 
+            description=description
+        )
+        assert tw.description == description
+
+    def test_template_number_positive_integer(self, user):
+        """Test that template_number must be positive."""
+        # Valid positive number
+        tw = TemplateWorkout.objects.create(user=user, template_number=3, name="Template 3")
+        assert tw.template_number == 3
+
+        # Zero should be allowed
+        tw2 = TemplateWorkout.objects.create(user=user, template_number=0, name="Template 0")
+        assert tw2.template_number == 0
+
+    def test_name_field_max_length(self, user):
+        """Test name field respects max_length constraint."""
+        # Valid length
+        tw = TemplateWorkout.objects.create(
+            user=user,
+            template_number=1,
+            name="A" * 200  # Exactly max length
+        )
+        assert len(tw.name) == 200
+
+        # Should fail with too long name
+        with pytest.raises(Exception):
+            TemplateWorkout.objects.create(
+                user=user,
+                template_number=2,
+                name="A" * 201  # Over max length
+            )

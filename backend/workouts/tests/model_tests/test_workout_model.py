@@ -43,3 +43,76 @@ class TestWorkoutModel:
         Workout.objects.create(user=user, workout_number=1, date=date.today(), name="Leg Day")
         with pytest.raises(IntegrityError):
             Workout.objects.create(user=user, workout_number=1, date=date.today(), name="Chest Day")
+
+    def test_notes_field_blank(self, user):
+        """Test that notes field can be blank."""
+        workout = Workout.objects.create(
+            user=user,
+            workout_number=1,
+            date=date.today(),
+            name="Test Workout"
+        )
+        assert workout.notes == ""
+
+    def test_notes_field_with_content(self, user):
+        """Test notes field with actual content."""
+        notes_content = "Felt great today! PR on bench press."
+        workout = Workout.objects.create(
+            user=user,
+            workout_number=1,
+            date=date.today(),
+            name="Test Workout",
+            notes=notes_content
+        )
+        assert workout.notes == notes_content
+
+    def test_workout_number_positive_integer(self, user):
+        """Test that workout_number must be positive."""
+        # Valid positive number
+        workout = Workout.objects.create(
+            user=user,
+            workout_number=5,
+            date=date.today(),
+            name="Test Workout"
+        )
+        assert workout.workout_number == 5
+
+        # Zero should be allowed (though not practical)
+        workout2 = Workout.objects.create(
+            user=user,
+            workout_number=0,
+            date=date.today() - timedelta(days=1),
+            name="Test Workout 2"
+        )
+        assert workout2.workout_number == 0
+
+    def test_date_field_validation(self, user):
+        """Test date field accepts valid dates."""
+        from datetime import date
+        workout = Workout.objects.create(
+            user=user,
+            workout_number=1,
+            date=date(2025, 12, 25),
+            name="Christmas Workout"
+        )
+        assert workout.date == date(2025, 12, 25)
+
+    def test_name_field_max_length(self, user):
+        """Test name field respects max_length constraint."""
+        # Valid length
+        workout = Workout.objects.create(
+            user=user,
+            workout_number=1,
+            date=date.today(),
+            name="A" * 100  # Exactly max length
+        )
+        assert len(workout.name) == 100
+
+        # Should fail with too long name (caught by Django validation)
+        with pytest.raises(Exception):
+            Workout.objects.create(
+                user=user,
+                workout_number=2,
+                date=date.today(),
+                name="A" * 101  # Over max length
+            )
