@@ -1,10 +1,8 @@
 name: Deploy to Production
 
 on:
-  pus      - name: Generate coverage report
-        run: |
-          cd backend
-          DJANGO_SETTINGS_MODULE=reptrack_backend.settings.test python -m pytest --cov=. --cov-report=term --cov-fail-under=80  branches:
+  push:
+    branches:
       - main
 
 jobs:
@@ -40,8 +38,7 @@ jobs:
       - name: Generate coverage report
         run: |
           cd backend
-          coverage run --source='.' manage.py test --settings=reptrack_backend.settings.test
-          coverage report --fail-under=100  # Optional: Fail if coverage < 100%
+          DJANGO_SETTINGS_MODULE=reptrack_backend.settings.test python -m pytest --cov=. --cov-report=term --cov-fail-under=80
 
   # Deploy job (CD) - only runs if tests pass
   deploy:
