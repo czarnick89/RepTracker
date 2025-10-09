@@ -12,10 +12,10 @@ DATABASES = {
 # Disable email sending during tests
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 
-# Use dummy cache for tests
+# Use locmem cache for tests (needed for throttling to work)
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
 }
 
