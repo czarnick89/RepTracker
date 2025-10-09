@@ -14,8 +14,8 @@ venv/
 *.sqlite3
 
 # Django migration files (optional - include if you want clean history)
-**/migrations/*.py
-!**/migrations/__init__.py
+# **/migrations/*.py
+# !**/migrations/__init__.py
 
 # === VS Code ===
 .vscode/
