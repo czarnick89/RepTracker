@@ -67,7 +67,8 @@ class TestExerciseByNameProxy:
         # Should get successful responses (200) since we're within limits
         assert all(code == 200 for code in responses)
 
-    def test_missing_name_parameter(self):
+    @patch('workouts.throttles.ExerciseInfoThrottle.allow_request', return_value=True)
+    def test_missing_name_parameter(self, mock_throttle):
         """Test request without name parameter returns 400."""
         url = reverse('exercise_by_name_proxy')
         response = self.client.get(url)
@@ -89,7 +90,8 @@ class TestExerciseByNameProxy:
             assert response.status_code == 404
             assert "Failed to fetch exercise" in response.data["detail"]
 
-    def test_unauthenticated_access_denied(self):
+    @patch('workouts.throttles.ExerciseInfoThrottle.allow_request', return_value=True)
+    def test_unauthenticated_access_denied(self, mock_throttle):
         """Test that unauthenticated users cannot access the proxy."""
         self.client.force_authenticate(user=None)
         url = reverse('exercise_by_name_proxy')
