@@ -69,3 +69,63 @@ class TestTemplateWorkoutSerializer:
         updated = serializer.save()
         assert updated.name == "Updated Template"
         assert updated.user == self.user  # user not changed
+
+    def test_required_fields_validation(self):
+        """Test that name is required."""
+        data = {
+            "description": "Template without name"
+        }
+        serializer = TemplateWorkoutSerializer(data=data, context=self.get_serializer_context())
+        assert not serializer.is_valid()
+        assert "name" in serializer.errors
+
+    def test_description_field_optional(self):
+        """Test that description field is optional."""
+        data = {
+            "name": "Template without description"
+        }
+        serializer = TemplateWorkoutSerializer(data=data, context=self.get_serializer_context())
+        assert serializer.is_valid(), serializer.errors
+        instance = serializer.save()
+        assert instance.description == ""  # Should be blank
+
+        # Test with description
+        data_with_desc = {
+            "name": "Template with description",
+            "description": "This is a comprehensive workout template."
+        }
+        serializer = TemplateWorkoutSerializer(data=data_with_desc, context=self.get_serializer_context())
+        assert serializer.is_valid(), serializer.errors
+        instance_with_desc = serializer.save()
+        assert instance_with_desc.description == "This is a comprehensive workout template."
+
+    def test_template_number_uniqueness_per_user(self):
+        """Test that template_number must be unique per user."""
+        # Create first template
+        TemplateWorkout.objects.create(user=self.user, template_number=1, name="First Template")
+
+        # Try to create another with same template_number for same user - should fail
+        data = {
+            "name": "Second Template",
+            "template_number": 1  # Same number - should fail validation
+        }
+        serializer = TemplateWorkoutSerializer(data=data, context=self.get_serializer_context())
+        assert not serializer.is_valid()
+        assert "template_number" in serializer.errors
+
+    def test_name_field_validation(self):
+        """Test name field validation."""
+        # Valid name
+        data = {
+            "name": "Valid Template Name"
+        }
+        serializer = TemplateWorkoutSerializer(data=data, context=self.get_serializer_context())
+        assert serializer.is_valid(), serializer.errors
+
+        # Empty name should fail
+        data_empty = {
+            "name": ""
+        }
+        serializer = TemplateWorkoutSerializer(data=data_empty, context=self.get_serializer_context())
+        assert not serializer.is_valid()
+        assert "name" in serializer.errors

@@ -100,3 +100,45 @@ class TestExerciseSerializer:
         assert serializer.is_valid(), serializer.errors
         updated = serializer.save()
         assert updated.created_at != "2000-01-01T00:00:00Z"
+
+    def test_weight_change_preference_choices_validation(self):
+        """Test that invalid weight_change_preference choices are rejected."""
+        data = {
+            "workout": self.workout.id,
+            "name": "Bench Press",
+            "exercise_number": 1,
+            "weight_change_preference": "invalid_choice"  # Invalid choice
+        }
+        serializer = ExerciseSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "weight_change_preference" in serializer.errors
+
+    def test_weight_change_preference_valid_choices(self):
+        """Test that all valid weight_change_preference choices are accepted."""
+        valid_choices = ["increase", "decrease", "same"]
+        for choice in valid_choices:
+            data = {
+                "workout": self.workout.id,
+                "name": f"Exercise {choice}",
+                "exercise_number": valid_choices.index(choice) + 1,
+                "weight_change_preference": choice
+            }
+            serializer = ExerciseSerializer(data=data)
+            assert serializer.is_valid(), f"Choice '{choice}' should be valid: {serializer.errors}"
+            instance = serializer.save()
+            assert instance.weight_change_preference == choice
+
+    def test_exercise_number_uniqueness_within_workout(self):
+        """Test that exercise_number must be unique within a workout."""
+        # Create first exercise
+        Exercise.objects.create(workout=self.workout, name="Bench Press", exercise_number=1)
+
+        # Try to create another with same exercise_number
+        data = {
+            "workout": self.workout.id,
+            "name": "Incline Press",
+            "exercise_number": 1  # Same number - should fail
+        }
+        serializer = ExerciseSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "exercise_number" in serializer.errors

@@ -38,6 +38,68 @@ class TestTemplateSetSerializer:
         # exercise should remain unchanged
         assert updated.exercise == self.template_exercise
 
+    def test_required_fields_validation(self):
+        """Test that exercise is required."""
+        data = {
+            "set_number": 1
+        }
+        serializer = TemplateSetSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "exercise" in serializer.errors
+
+    def test_set_number_auto_assignment(self):
+        """Test that set_number is required and validated."""
+        # Valid set_number
+        data = {
+            "exercise": self.template_exercise.id,
+            "set_number": 1
+        }
+        serializer = TemplateSetSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+
+        # Missing set_number should fail
+        data_no_number = {
+            "exercise": self.template_exercise.id
+        }
+        serializer = TemplateSetSerializer(data=data_no_number)
+        assert not serializer.is_valid()
+        assert "set_number" in serializer.errors
+
+    def test_update_prevents_exercise_change(self):
+        """Test that exercise cannot be changed on update."""
+        template_set = TemplateSet.objects.create(exercise=self.template_exercise, set_number=1)
+
+        # Create another exercise
+        other_exercise = TemplateExercise.objects.create(
+            workout_template=self.template_exercise.workout_template,
+            name="Other Exercise",
+            exercise_number=2
+        )
+
+        update_data = {
+            "exercise": other_exercise.id,  # Should be ignored
+            "set_number": 2
+        }
+        serializer = TemplateSetSerializer(template_set, data=update_data, partial=True)
+        assert serializer.is_valid(), serializer.errors
+        updated = serializer.save()
+        assert updated.exercise == self.template_exercise  # Should not change
+        assert updated.set_number == 2
+
+    def test_read_only_fields_protection(self):
+        """Test that created_at and updated_at are read-only."""
+        template_set = TemplateSet.objects.create(exercise=self.template_exercise, set_number=1)
+
+        update_data = {
+            "created_at": "2000-01-01T00:00:00Z",
+            "updated_at": "2000-01-01T00:00:00Z"
+        }
+        serializer = TemplateSetSerializer(template_set, data=update_data, partial=True)
+        assert serializer.is_valid(), serializer.errors
+        updated = serializer.save()
+        # Timestamps should not be changed to the fake values
+        assert updated.created_at != "2000-01-01T00:00:00Z"
+
     # Helper to create a TemplateWorkout for FK
     def _create_template_workout(self):
         from workouts.models import TemplateWorkout

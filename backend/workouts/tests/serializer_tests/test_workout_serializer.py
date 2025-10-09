@@ -78,6 +78,78 @@ class TestWorkoutSerializer:
         # Exercises should be serialized as empty list by default
         assert serializer.data['exercises'] == []
 
+    def test_required_fields_validation(self):
+        """Test that required fields (date, name) are validated."""
+        # Missing both date and name
+        data = {}
+        serializer = WorkoutSerializer(data=data, context={"request": self._fake_request(self.user)})
+        assert not serializer.is_valid()
+        assert "date" in serializer.errors
+        assert "name" in serializer.errors
+
+        # Missing date only
+        data = {"name": "Test Workout"}
+        serializer = WorkoutSerializer(data=data, context={"request": self._fake_request(self.user)})
+        assert not serializer.is_valid()
+        assert "date" in serializer.errors
+
+        # Missing name only
+        data = {"date": date.today()}
+        serializer = WorkoutSerializer(data=data, context={"request": self._fake_request(self.user)})
+        assert not serializer.is_valid()
+        assert "name" in serializer.errors
+
+    def test_valid_date_and_name(self):
+        """Test that valid date and name are accepted."""
+        data = {
+            "date": date.today(),
+            "name": "Valid Workout Name"
+        }
+        serializer = WorkoutSerializer(data=data, context={"request": self._fake_request(self.user)})
+        assert serializer.is_valid(), serializer.errors
+        workout = serializer.save()
+        assert workout.date == date.today()
+        assert workout.name == "Valid Workout Name"
+
+    def test_notes_field_optional(self):
+        """Test that notes field is optional."""
+        data = {
+            "date": date.today(),
+            "name": "Workout without notes"
+        }
+        serializer = WorkoutSerializer(data=data, context={"request": self._fake_request(self.user)})
+        assert serializer.is_valid(), serializer.errors
+        workout = serializer.save()
+        assert workout.notes == ""  # Should be blank
+
+        # Test with notes
+        data_with_notes = {
+            "date": date.today(),
+            "name": "Workout with notes",
+            "notes": "Felt great today!"
+        }
+        serializer = WorkoutSerializer(data=data_with_notes, context={"request": self._fake_request(self.user)})
+        assert serializer.is_valid(), serializer.errors
+        workout_with_notes = serializer.save()
+        assert workout_with_notes.notes == "Felt great today!"
+
+    def test_workout_number_uniqueness_per_user(self):
+        """Test that workout_number must be unique per user."""
+        # Create first workout
+        Workout.objects.create(user=self.user, workout_number=1, date=date.today(), name="First Workout")
+
+        # Try to create another with same workout_number for same user - should fail at database level
+        data = {
+            "date": date.today(),
+            "name": "Second Workout",
+            "workout_number": 1  # Same number - should fail
+        }
+        serializer = WorkoutSerializer(data=data, context={"request": self._fake_request(self.user)})
+        assert serializer.is_valid(), serializer.errors  # Serializer validation passes
+        # But saving should fail due to database constraint
+        with pytest.raises(Exception):  # IntegrityError from database
+            serializer.save()
+
     # Helper method to fake request with user
     class DummyRequest:
         def __init__(self, user):
