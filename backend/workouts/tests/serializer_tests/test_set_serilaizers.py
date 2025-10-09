@@ -70,3 +70,41 @@ class TestSetSerializer:
         assert updated_set.exercise == self.exercise  # Still original
         assert updated_set.reps == 12
         assert updated_set.weight == 150
+
+    def test_negative_weight_raises_validation_error(self):
+        """Test that negative weight values are rejected."""
+        data = {
+            "exercise": self.exercise.id,
+            "set_number": 1,
+            "reps": 10,
+            "weight": -5  # Negative weight should fail
+        }
+        serializer = SetSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "weight" in serializer.errors
+
+    def test_zero_weight_is_allowed(self):
+        """Test that zero weight is allowed."""
+        data = {
+            "exercise": self.exercise.id,
+            "set_number": 1,
+            "reps": 10,
+            "weight": 0  # Zero weight should be allowed
+        }
+        serializer = SetSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        set_instance = serializer.save()
+        assert set_instance.weight == 0
+
+    def test_positive_weight_is_allowed(self):
+        """Test that positive weight values are allowed."""
+        data = {
+            "exercise": self.exercise.id,
+            "set_number": 1,
+            "reps": 10,
+            "weight": 225.5  # Positive decimal weight
+        }
+        serializer = SetSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        set_instance = serializer.save()
+        assert set_instance.weight == 225.5

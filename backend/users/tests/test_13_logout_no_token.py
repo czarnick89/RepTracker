@@ -8,4 +8,5 @@ def test_logout_without_token():
     client = APIClient()
     url = reverse('logout')
     response = client.post(url)
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED or response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_200_OK
+    assert "logged out" in response.data["detail"].lower()

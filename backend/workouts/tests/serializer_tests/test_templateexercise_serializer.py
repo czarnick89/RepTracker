@@ -73,3 +73,66 @@ class TestTemplateExerciseSerializer:
         assert serializer.is_valid(), serializer.errors
         updated = serializer.save()
         assert updated.created_at.isoformat() != "2000-01-01T00:00:00+00:00"
+
+    def test_required_fields_validation(self):
+        """Test that workout_template and name are required."""
+        # Missing workout_template
+        data = {
+            "name": "Exercise without template"
+        }
+        serializer = TemplateExerciseSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "workout_template" in serializer.errors
+
+        # Missing name
+        data = {
+            "workout_template": 1
+        }
+        serializer = TemplateExerciseSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "name" in serializer.errors
+
+    def test_exercise_number_uniqueness_within_template(self, template_workout):
+        """Test that exercise_number must be unique within a template workout."""
+        # Create first exercise
+        TemplateExercise.objects.create(workout_template=template_workout, name="Bench Press", exercise_number=1)
+
+        # Try to create another with same exercise_number in same template - should fail
+        data = {
+            "workout_template": template_workout.id,
+            "name": "Incline Press",
+            "exercise_number": 1  # Same number - should fail validation
+        }
+        serializer = TemplateExerciseSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "non_field_errors" in serializer.errors  # Unique constraint violation
+
+    def test_exercise_number_can_be_null(self, template_workout):
+        """Test that exercise_number can be null."""
+        data = {
+            "workout_template": template_workout.id,
+            "name": "Exercise with null number"
+        }
+        serializer = TemplateExerciseSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        instance = serializer.save()
+        assert instance.exercise_number == 1  # Should auto-assign 1
+
+    def test_name_field_validation(self, template_workout):
+        """Test name field validation."""
+        # Valid name
+        data = {
+            "workout_template": template_workout.id,
+            "name": "Valid Exercise Name"
+        }
+        serializer = TemplateExerciseSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+
+        # Empty name should fail
+        data_empty = {
+            "workout_template": template_workout.id,
+            "name": ""
+        }
+        serializer = TemplateExerciseSerializer(data=data_empty)
+        assert not serializer.is_valid()
+        assert "name" in serializer.errors

@@ -67,3 +67,28 @@ class TestWorkoutURLs:
         self.client.force_authenticate(user=None)
         response = self.client.get(self.list_url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_recent_workouts_url(self):
+        """Test that workout-recent URL resolves correctly."""
+        url = reverse('workout-recent')
+        assert url == '/api/v1/workouts/workouts/recent/'
+
+        # Test GET request
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        # Should return user's workouts
+        assert isinstance(response.data, list)
+
+    def test_recent_workouts_with_pagination_params(self):
+        """Test recent workouts URL with pagination parameters."""
+        url = reverse('workout-recent')
+        response = self.client.get(url, {'offset': '1', 'limit': '5'})
+        assert response.status_code == status.HTTP_200_OK
+        assert isinstance(response.data, list)
+
+    def test_recent_workouts_requires_authentication(self):
+        """Test that recent workouts requires authentication."""
+        self.client.force_authenticate(user=None)
+        url = reverse('workout-recent')
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED

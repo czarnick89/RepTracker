@@ -17,9 +17,9 @@ def test_verify_email_success(client):
     response = client.get(url)
 
     user.refresh_from_db()
-    assert response.status_code == 200
+    assert response.status_code == 302  # Redirect to frontend
+    assert "verified=true" in response.url
     assert user.is_active is True
-    assert "email verified" in response.data.get("detail", "").lower()
 
 @pytest.mark.django_db
 def test_verify_email_invalid_token(client):
@@ -32,6 +32,6 @@ def test_verify_email_invalid_token(client):
     response = client.get(url)
 
     user.refresh_from_db()
-    assert response.status_code == 400
+    assert response.status_code == 302  # Redirect to frontend
+    assert "verified=expired" in response.url
     assert user.is_active is False
-    assert "invalid" in response.data.get("error", "").lower()

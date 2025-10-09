@@ -3,6 +3,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from workouts.models import Exercise, Workout
 from users.models import User  
+from datetime import date
 
 @pytest.mark.django_db
 class TestExerciseViewSet:
@@ -82,3 +83,42 @@ class TestExerciseViewSet:
         url = reverse('exercise-list')
         response = self.client.get(url)
         assert response.status_code == 401  # Unauthorized
+
+    def test_exercise_not_found_returns_404(self):
+        """Test accessing non-existent exercise returns 404."""
+        url = reverse('exercise-detail', args=[99999])
+        response = self.client.get(url)
+        assert response.status_code == 404
+
+    def test_create_exercise_with_null_exercise_number(self):
+        """Test creating exercise with null exercise_number (should auto-assign)."""
+        data = {
+            "workout": self.workout.id,
+            "name": "Auto-numbered Exercise"
+        }
+        response = self.client.post(reverse('exercise-list'), data, format='json')
+        assert response.status_code == 201
+        assert response.data['exercise_number'] == 1  # Should auto-assign
+
+    def test_exercises_filtered_by_user_workouts(self):
+        """Test that exercises are properly filtered by user's workouts."""
+        # Create another user with their own workout and exercise
+        other_user = User.objects.create_user(email='other@example.com', password='pass456')
+        other_workout = Workout.objects.create(
+            user=other_user,
+            workout_number=1,
+            name="Other Workout",
+            date=date.today()
+        )
+        other_exercise = Exercise.objects.create(
+            workout=other_workout,
+            name="Other Exercise",
+            exercise_number=1
+        )
+
+        # Our user's exercises should not include the other user's
+        url = reverse('exercise-list')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        exercise_ids = [ex['id'] for ex in response.data]
+        assert other_exercise.id not in exercise_ids

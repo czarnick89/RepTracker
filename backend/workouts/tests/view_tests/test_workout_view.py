@@ -93,3 +93,48 @@ class TestWorkoutViewSet:
         url = reverse('workout-list')
         response = self.client.get(url)
         assert response.status_code == 401  # Unauthorized
+
+    def test_workout_not_found_returns_404(self):
+        """Test accessing non-existent workout returns 404."""
+        url = reverse('workout-detail', args=[99999])
+        response = self.client.get(url)
+        assert response.status_code == 404
+
+    def test_update_workout_partial_data(self):
+        """Test partial update of workout."""
+        url = reverse('workout-detail', args=[self.workout1.id])
+        update_data = {"notes": "Updated notes only"}
+        response = self.client.patch(url, update_data, format='json')
+        assert response.status_code == 200
+        assert response.data['notes'] == "Updated notes only"
+        assert response.data['name'] == self.workout1.name  # Unchanged
+
+    def test_recent_workouts_action(self):
+        """Test the recent workouts custom action."""
+        url = reverse('workout-recent')
+        response = self.client.get(url)
+        assert response.status_code == 200
+        # Should return user's workouts
+        returned_ids = {w['id'] for w in response.data}
+        assert self.workout1.id in returned_ids
+        assert self.workout2.id in returned_ids
+        assert self.other_workout.id not in returned_ids
+
+    def test_recent_workouts_with_pagination(self):
+        """Test recent workouts with offset and limit parameters."""
+        url = reverse('workout-recent')
+        response = self.client.get(url, {'limit': 1, 'offset': 1})
+        assert response.status_code == 200
+        # Should return only 1 workout (the second one due to ordering)
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == self.workout2.id
+
+    def test_recent_workouts_invalid_params(self):
+        """Test recent workouts with invalid pagination parameters."""
+        url = reverse('workout-recent')
+        response = self.client.get(url, {'limit': 'invalid', 'offset': 'invalid'})
+        assert response.status_code == 200
+        # Should use defaults (limit=10, offset=0)
+        returned_ids = {w['id'] for w in response.data}
+        assert self.workout1.id in returned_ids
+        assert self.workout2.id in returned_ids
