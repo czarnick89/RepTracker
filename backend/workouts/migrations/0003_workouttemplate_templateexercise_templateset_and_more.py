@@ -28,6 +28,42 @@ class AddConstraintIfNotExists(AddConstraint):
         table_name = model._meta.db_table
         constraint_name = self.constraint.name
         
+        # Database-agnostic constraint existence check
+        db_backend = schema_editor.connection.vendor
+        
+        if db_backend == 'postgresql':
+            # PostgreSQL: Use information_schema
+            cursor = schema_editor.connection.cursor()
+            cursor.execute("""
+                SELECT 1 FROM information_schema.table_constraints 
+                WHERE constraint_name = %s AND table_name = %s
+            """, [constraint_name, table_name])
+            exists = cursor.fetchone()
+            
+        elif db_backend == 'sqlite':
+            # SQLite: Check sqlite_master for indexes (unique constraints create indexes)
+            cursor = schema_editor.connection.cursor()
+            cursor.execute("""
+                SELECT 1 FROM sqlite_master 
+                WHERE type='index' AND name=?
+            """, [constraint_name])
+            exists = cursor.fetchone()
+            
+        else:
+            # For other databases, try to add and catch exception
+            exists = False
+        
+        if not exists:
+            try:
+                # Constraint doesn't exist, add it
+                super().database_forwards(app_label, schema_editor, from_state, to_state)
+            except Exception:
+                # If adding fails (e.g., constraint exists but wasn't detected), skip silently
+                pass
+        # If constraint exists, skip but still update statemodel = from_state.apps.get_model(app_label, self.model_name)
+        table_name = model._meta.db_table
+        constraint_name = self.constraint.name
+        
         # Check if constraint exists (PostgreSQL specific)
         cursor = schema_editor.connection.cursor()
         cursor.execute("""
