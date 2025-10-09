@@ -34,8 +34,10 @@ class TestSetModel:
         with pytest.raises(Exception) as excinfo:
             # Attempt to create a duplicate set_number for the same exercise
             Set.objects.create(exercise=exercise, set_number=1, reps=8, weight=150)
-        # SQLite shows the actual constraint violation message
-        assert 'UNIQUE constraint failed' in str(excinfo.value)
+        # Check for unique constraint violation (works for both SQLite and PostgreSQL)
+        error_msg = str(excinfo.value)
+        assert ('UNIQUE constraint failed' in error_msg or 
+                'duplicate key value violates unique constraint' in error_msg)
 
     def test_same_set_number_different_exercises(self, workout):
         ex1 = Exercise.objects.create(workout=workout, name='Squat', exercise_number=1)
