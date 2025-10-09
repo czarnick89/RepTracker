@@ -19,10 +19,6 @@ class Migration(migrations.Migration):
             managers=[
             ],
         ),
-        migrations.RemoveField(
-            model_name='user',
-            name='username',
-        ),
         migrations.AlterField(
             model_name='user',
             name='date_joined',
