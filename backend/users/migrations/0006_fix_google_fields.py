@@ -3,93 +3,82 @@
 from django.db import migrations, models
 
 
-def add_google_fields_if_not_exist(apps, schema_editor):
+def add_google_fields_safely(apps, schema_editor):
     """
-    Add Google-related fields to User model if they don't already exist.
-    This handles the case where the fields might already exist
-    from manual database setup or previous migrations.
+    Add Google fields to User model, but only if they don't already exist.
+    Handles both PostgreSQL (production) and SQLite (CI/CD) databases.
     """
     db = schema_editor.connection
     table_name = 'users_user'
 
-    # Fields to check and potentially add
+    # Fields to potentially add
     fields_to_add = [
-        ('google_access_token', models.TextField(blank=True, null=True)),
-        ('google_refresh_token', models.TextField(blank=True, null=True)),
-        ('google_token_expiry', models.DateTimeField(blank=True, null=True)),
+        ('google_access_token', 'TEXT'),
+        ('google_refresh_token', 'TEXT'),
+        ('google_token_expiry', 'TIMESTAMP'),
     ]
 
     with db.cursor() as cursor:
-        db_vendor = db.vendor
-
-        for field_name, field_instance in fields_to_add:
+        for field_name, field_type in fields_to_add:
             column_exists = False
 
-            if db_vendor == 'postgresql':
+            if db.vendor == 'postgresql':
                 # Check if column exists in PostgreSQL
                 cursor.execute("""
-                    SELECT column_name
-                    FROM information_schema.columns
+                    SELECT 1 FROM information_schema.columns
                     WHERE table_name = %s AND column_name = %s
                 """, [table_name, field_name])
+                column_exists = cursor.fetchone() is not None
 
-                if cursor.fetchone():
-                    column_exists = True
-
-            elif db_vendor == 'sqlite':
+            elif db.vendor == 'sqlite':
                 # Check if column exists in SQLite
-                cursor.execute("""
-                    PRAGMA table_info(users_user)
-                """)
+                cursor.execute("PRAGMA table_info(users_user)")
                 columns = cursor.fetchall()
-                if any(col[1] == field_name for col in columns):
-                    column_exists = True
+                column_exists = any(col[1] == field_name for col in columns)
 
             if not column_exists:
-                # Add the field using Django's schema editor
-                User = apps.get_model('users', 'User')
-                schema_editor.add_field(User, field_instance.clone())
+                # Add the column
+                if db.vendor == 'postgresql':
+                    if field_type == 'TIMESTAMP':
+                        sql = f'ALTER TABLE {table_name} ADD COLUMN {field_name} TIMESTAMP WITH TIME ZONE NULL'
+                    else:
+                        sql = f'ALTER TABLE {table_name} ADD COLUMN {field_name} {field_type} NULL'
+                elif db.vendor == 'sqlite':
+                    sql = f'ALTER TABLE {table_name} ADD COLUMN {field_name} {field_type}'
+
+                cursor.execute(sql)
 
 
-def remove_google_fields_if_exist(apps, schema_editor):
+def remove_google_fields_safely(apps, schema_editor):
     """
-    Remove Google-related fields if they exist (reverse migration).
+    Remove Google fields if they exist (reverse migration).
     """
     db = schema_editor.connection
     table_name = 'users_user'
-
-    # Fields to potentially remove
     fields_to_remove = ['google_access_token', 'google_refresh_token', 'google_token_expiry']
 
     with db.cursor() as cursor:
-        db_vendor = db.vendor
-
         for field_name in fields_to_remove:
             column_exists = False
 
-            if db_vendor == 'postgresql':
+            if db.vendor == 'postgresql':
                 cursor.execute("""
-                    SELECT column_name
-                    FROM information_schema.columns
+                    SELECT 1 FROM information_schema.columns
                     WHERE table_name = %s AND column_name = %s
                 """, [table_name, field_name])
+                column_exists = cursor.fetchone() is not None
 
-                if cursor.fetchone():
-                    column_exists = True
-
-            elif db_vendor == 'sqlite':
-                cursor.execute("""
-                    PRAGMA table_info(users_user)
-                """)
+            elif db.vendor == 'sqlite':
+                cursor.execute("PRAGMA table_info(users_user)")
                 columns = cursor.fetchall()
-                if any(col[1] == field_name for col in columns):
-                    column_exists = True
+                column_exists = any(col[1] == field_name for col in columns)
 
             if column_exists:
-                # Remove the field
-                User = apps.get_model('users', 'User')
-                field = User._meta.get_field(field_name)
-                schema_editor.remove_field(User, field)
+                # Remove the column
+                sql = f'ALTER TABLE {table_name} DROP COLUMN {field_name}'
+                if db.vendor == 'postgresql':
+                    sql += ' CASCADE'  # PostgreSQL may need CASCADE
+                cursor.execute(sql)
 
 
 class Migration(migrations.Migration):
@@ -100,7 +89,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            add_google_fields_if_not_exist,
-            remove_google_fields_if_exist
+            add_google_fields_safely,
+            remove_google_fields_safely
         ),
     ]
