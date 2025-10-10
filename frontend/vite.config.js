@@ -4,9 +4,16 @@ import mkcert from 'vite-plugin-mkcert'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react(), mkcert(), tailwindcss()],
+  plugins: [
+    react(),
+    ...(process.env.CI ? [] : [mkcert()]),
+    tailwindcss()
+  ],
   server: {
-    https: true,
+    https: process.env.CI ? false : true,
+    host: process.env.CI ? true : undefined,
+    port: process.env.CI ? 5173 : undefined,
+    strictPort: process.env.CI ? true : undefined,
   },
   // Security / production build tweaks: disable sourcemaps and strip comments
   // to avoid exposing developer comments or source maps in production.

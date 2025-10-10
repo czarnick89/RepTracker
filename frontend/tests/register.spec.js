@@ -10,8 +10,11 @@ test('has title', async ({ page }) => {
 test('register page loads', async ({ page }) => {
   await page.goto('/register');
 
+  // Wait for the page to load and check URL
+  await expect(page).toHaveURL(/.*\/register/);
+
   // Check if the register form is present
-  await expect(page.locator('h2')).toContainText('Register');
+  await expect(page.locator('h2')).toContainText('RepTracker Register');
   await expect(page.locator('input#email')).toBeVisible();
   await expect(page.locator('input#password')).toBeVisible();
   await expect(page.locator('input#confirmPassword')).toBeVisible();
@@ -36,8 +39,11 @@ test('password validation indicators', async ({ page }) => {
   await expect(page.locator('text=✓ At least 8 characters')).toBeVisible();
   await expect(page.locator('text=✓ Not entirely numeric')).toBeVisible();
 
-  // Type entirely numeric
+  // Clear and type entirely numeric - make sure we don't submit
+  await passwordInput.clear();
   await passwordInput.fill('123456789');
+  // Wait a bit for validation to update
+  await page.waitForTimeout(100);
   await expect(page.locator('text=✓ At least 8 characters')).toBeVisible();
   await expect(page.locator('text=✗ Not entirely numeric')).toBeVisible();
 });
@@ -46,7 +52,8 @@ test('password visibility toggle', async ({ page }) => {
   await page.goto('/register');
 
   const passwordInput = page.locator('input#password');
-  const toggleButton = page.locator('button').first();
+  // Target the button inside the password input's parent div
+  const toggleButton = page.locator('input#password').locator('xpath=ancestor::div[1]//button');
 
   // Initially password is hidden
   await expect(passwordInput).toHaveAttribute('type', 'password');
@@ -66,7 +73,7 @@ test('password match indicator', async ({ page }) => {
   const passwordInput = page.locator('input#password');
   const confirmInput = page.locator('input#confirmPassword');
 
-  // Type password
+  // Type password first
   await passwordInput.fill('password123');
   await confirmInput.fill('password123');
 

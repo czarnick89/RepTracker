@@ -45,7 +45,7 @@ RepTracker is a full-stack workout tracker app that allows users to log workouts
 - **Database:** PostgreSQL
 - **Authentication:** JWT, Google OAuth2 integration  
 - **Security:** OWASP ZAP audited for vulnerabilities
-- **Testing:** pytest, pytest-django  
+- **Testing:** pytest, pytest-django, playwright
 - **Development Tools:** Python Decouple, django-sslserver  
 
 ## Database Schema
