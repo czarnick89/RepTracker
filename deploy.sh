@@ -13,6 +13,16 @@ echo "[2/4] Backend setup..."
 source backend/.venv/bin/activate
 pip install -r backend/requirements.txt
 cd backend
+# Drop conflicting constraint if it exists to allow migration to proceed
+python manage.py shell -c "
+try:
+    from django.db import connection
+    with connection.cursor() as cursor:
+        cursor.execute('ALTER TABLE IF EXISTS workouts_workouttemplate DROP CONSTRAINT IF EXISTS workouts_workouttemplate_user_id_2215190a_fk_users_user_id;')
+    print('Dropped conflicting constraint if it existed')
+except Exception as e:
+    print(f'Error dropping constraint: {e}')
+"
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 deactivate
