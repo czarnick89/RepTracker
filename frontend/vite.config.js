@@ -12,14 +12,9 @@ export default defineConfig({
   server: {
     https: process.env.CI ? false : true,
     host: process.env.CI ? true : undefined,
-    port: process.env.CI ? 5173 : undefined,
+    port: process.env.CI ? 5174 : undefined,
     strictPort: process.env.CI ? true : undefined,
   },
-  // Disable dependency optimization in CI to avoid crypto.hash issues
-  optimizeDeps: process.env.CI ? {
-    noDiscovery: true,
-    include: []
-  } : undefined,
   // Security / production build tweaks: disable sourcemaps and strip comments
   // to avoid exposing developer comments or source maps in production.
   build: {
