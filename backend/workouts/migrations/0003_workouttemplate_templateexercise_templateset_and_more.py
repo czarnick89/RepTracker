@@ -31,6 +31,7 @@ class AddConstraintIfNotExists(AddConstraint):
 
 
 class Migration(migrations.Migration):
+    atomic = False
 
     dependencies = [
         ('workouts', '0002_exercise_unique_exercise_number_per_workout_and_more'),
