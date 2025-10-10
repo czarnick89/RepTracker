@@ -12,9 +12,14 @@ class CreateModelIfNotExists(CreateModel):
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
         try:
             super().database_forwards(app_label, schema_editor, from_state, to_state)
-        except Exception:
-            # If table already exists, skip creation but still update state
-            pass
+        except Exception as e:
+            error_msg = str(e).lower()
+            if any(keyword in error_msg for keyword in ['already exists', 'duplicate', 'constraint']):
+                # Table or constraints already exist, skip silently
+                pass
+            else:
+                # Unexpected error, re-raise
+                raise
         # State is updated by the operation's state_forwards method
 
 

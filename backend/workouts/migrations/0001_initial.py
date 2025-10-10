@@ -3,6 +3,24 @@
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
+from django.db.migrations.operations.models import CreateModel
+
+
+class CreateModelIfNotExists(CreateModel):
+    """CreateModel operation that only creates the table if it doesn't exist."""
+
+    def database_forwards(self, app_label, schema_editor, from_state, to_state):
+        try:
+            super().database_forwards(app_label, schema_editor, from_state, to_state)
+        except Exception as e:
+            error_msg = str(e).lower()
+            if any(keyword in error_msg for keyword in ['already exists', 'duplicate', 'constraint']):
+                # Table or constraints already exist, skip silently
+                pass
+            else:
+                # Unexpected error, re-raise
+                raise
+        # State is updated by the operation's state_forwards method
 
 
 class Migration(migrations.Migration):
@@ -14,7 +32,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
+        CreateModelIfNotExists(
             name='Exercise',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -27,7 +45,7 @@ class Migration(migrations.Migration):
                 'ordering': ['exercise_number'],
             },
         ),
-        migrations.CreateModel(
+        CreateModelIfNotExists(
             name='Set',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -42,7 +60,7 @@ class Migration(migrations.Migration):
                 'ordering': ['set_number'],
             },
         ),
-        migrations.CreateModel(
+        CreateModelIfNotExists(
             name='Workout',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),

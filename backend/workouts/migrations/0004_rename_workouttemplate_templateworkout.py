@@ -2,6 +2,29 @@
 
 from django.conf import settings
 from django.db import migrations
+from django.db.migrations.operations.models import RenameModel
+
+
+class RenameModelIfExists(RenameModel):
+    """RenameModel operation that only renames if the old model exists and new name doesn't."""
+
+    def database_forwards(self, app_label, schema_editor, from_state, to_state):
+        # Check if old model exists and new model doesn't
+        old_model = from_state.apps.get_model(app_label, self.old_name, require_ready=False)
+        if old_model is None:
+            # Old model doesn't exist, skip
+            return
+
+        try:
+            new_model = from_state.apps.get_model(app_label, self.new_name, require_ready=False)
+            if new_model is not None:
+                # New model already exists, skip
+                return
+        except LookupError:
+            pass
+
+        # Proceed with rename
+        super().database_forwards(app_label, schema_editor, from_state, to_state)
 
 
 class Migration(migrations.Migration):
@@ -12,7 +35,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameModel(
+        RenameModelIfExists(
             old_name='WorkoutTemplate',
             new_name='TemplateWorkout',
         ),
