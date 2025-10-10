@@ -48,19 +48,29 @@ ENCODED_TOKEN=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sy
 curl -sS "http://127.0.0.1:8090/JSON/session/action/addSessionCookie/?contextName=$CONTEXT_NAME&cookieName=access_token&cookieValue=${ENCODED_TOKEN}&domain=${DOMAIN}&path=/&httpOnly=true&secure=true&apikey=$ZAP_API_KEY" >/dev/null
 echo "Cookie added to ZAP context $CONTEXT_NAME."
 
-# 4) Spider the site (authenticated)
-SPIDER_ID=$(curl -s "http://127.0.0.1:8090/JSON/spider/action/scan/?contextName=$CONTEXT_NAME&url=${TARGET_URL}&maxChildren=0&recurse=true&apikey=$ZAP_API_KEY" | jq -r '.scan')
+# 4) Traditional spider for main site
+echo "Starting traditional spider for main site..."
+SPIDER_ID=$(curl -s "http://127.0.0.1:8090/JSON/spider/action/scan/?contextName=$CONTEXT_NAME&url=${TARGET_URL}&recurse=true&apikey=$ZAP_API_KEY" | jq -r '.scan')
 
-echo "Spider started with ID $SPIDER_ID. Waiting for completion..."
+# Wait for spider to complete
+echo "Waiting for spider to complete..."
 while true; do
-  PERCENT=$(curl -s "http://127.0.0.1:8090/JSON/spider/view/status/?scanId=$SPIDER_ID&apikey=$ZAP_API_KEY" | jq -r '.status')
-  echo "Spider progress: $PERCENT%"
-  if [[ "$PERCENT" == "100" ]]; then
+  STATUS=$(curl -s "http://127.0.0.1:8090/JSON/spider/view/status/?scanId=$SPIDER_ID&apikey=$ZAP_API_KEY" | jq -r '.status')
+  echo "Spider progress: $STATUS%"
+  if [[ "$STATUS" == "100" ]]; then
     break
   fi
-  sleep 2
+  sleep 3
 done
-echo "Spider completed."
+
+# Check URLs discovered
+URL_COUNT=$(curl -s "http://127.0.0.1:8090/JSON/core/view/numberOfUrls/?apikey=$ZAP_API_KEY" | jq -r '.numberOfUrls')
+echo "URLs discovered: $URL_COUNT"
+
+# 4.5) Traditional spider for API endpoints
+API_URL="${TARGET_URL}api/v1"
+curl -s "http://127.0.0.1:8090/JSON/spider/action/scan/?contextName=$CONTEXT_NAME&url=${API_URL}&maxChildren=0&recurse=true&apikey=$ZAP_API_KEY" >/dev/null
+echo "API endpoint spider scan completed."
 
 # 5) Active scan the site (authenticated)
 ASCAN_ID=$(curl -s "http://127.0.0.1:8090/JSON/ascan/action/scan/?contextName=$CONTEXT_NAME&url=${TARGET_URL}&recurse=true&apikey=$ZAP_API_KEY" | jq -r '.scan')
