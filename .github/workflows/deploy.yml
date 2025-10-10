@@ -72,14 +72,12 @@ jobs:
       - name: Install Playwright browsers
         run: |
           cd frontend
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium --no-install-recommends
 
       - name: Run frontend tests
         run: |
           cd frontend
-          npx playwright test --project=chromium --reporter=line --timeout=10000 --workers=1
-        env:
-          DEBUG: pw:api,pw:browser
+          npx playwright test --project=chromium --quiet
 
   # Deploy job (CD) - only runs if tests pass
   deploy:
