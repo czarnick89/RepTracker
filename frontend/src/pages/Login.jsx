@@ -19,7 +19,7 @@ export default function Login() {
 
   // Redirect logged-in users away from login page
   // Uses location.state.from to send user back to the page they tried to access
-  if (!authLoading && user && !import.meta.env.CI) {
+  if (!authLoading && user && !__CI__) {
     const from = location.state?.from?.pathname || "/dashboard"; // Default to dashboard if the from is unable to be resolved
     return <Navigate to={from} replace />;
   }

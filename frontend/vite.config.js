@@ -9,6 +9,9 @@ export default defineConfig({
     ...(process.env.CI ? [] : [mkcert()]),
     tailwindcss()
   ],
+  define: {
+    __CI__: process.env.CI === 'true'
+  },
   server: {
     https: process.env.CI ? false : true,
     host: process.env.CI ? true : undefined,
