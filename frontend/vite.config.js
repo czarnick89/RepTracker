@@ -16,9 +16,10 @@ export default defineConfig({
     strictPort: process.env.CI ? true : undefined,
   },
   // Disable dependency optimization in CI to avoid crypto.hash issues
-  optimizeDeps: {
-    disabled: process.env.CI ? true : false,
-  },
+  optimizeDeps: process.env.CI ? {
+    noDiscovery: true,
+    include: []
+  } : undefined,
   // Security / production build tweaks: disable sourcemaps and strip comments
   // to avoid exposing developer comments or source maps in production.
   build: {
