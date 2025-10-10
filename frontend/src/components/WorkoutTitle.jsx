@@ -4,7 +4,7 @@ import { useState } from "react";
 // 
 function WorkoutTitle({ workout, onNameUpdate, onDelete, showDeleteButton}) {
   const [isEditing, setIsEditing] = useState(false); // Store isEditing state
-  const [name, setName] = React.useState(workout.name); // Store name, default to workout.name
+  const [name, setName] = React.useState(workout?.name || 'Untitled Workout'); // Store name, default to workout.name
 
   // Called on blur
   const handleBlur = async () => {
@@ -42,11 +42,11 @@ function WorkoutTitle({ workout, onNameUpdate, onDelete, showDeleteButton}) {
           title="Click to edit workout name"
         >
           {name} -{" "}
-          {(() => {
+          {workout?.date ? (() => {
             const [year, month, day] = workout.date.split("-");
             const dateObj = new Date(year, month - 1, day);
             return dateObj.toLocaleDateString();
-          })()}
+          })() : 'No date'}
         </span>
       )}
 {showDeleteButton && (

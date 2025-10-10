@@ -6,6 +6,8 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [registered, setRegistered] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,43 +104,74 @@ export default function Register() {
               />
             </div>
 
-            <div>
+            <div className="relative">
               <label
                 htmlFor="password"
                 className="block text-sm font-medium text-slate-700"
               >
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {password && password.length < 8 && (
-                <p className="text-orange-500 text-sm mt-1">
-                  Password must be at least 8 characters.
-                </p>
-              )}
+              <div className="text-sm text-slate-600 mt-1 mb-2">
+                <ul className="list-disc list-inside ml-4 mt-1">
+                  <li>At least 8 characters</li>
+                  <li>Not entirely numeric</li>
+                </ul>
+              </div>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full pr-16 px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-sm text-slate-600 hover:text-slate-800"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+              <p className="text-sm mt-1">
+                <span className={password ? (password.length >= 8 ? "text-green-600" : "text-red-600") : "text-slate-400"}>
+                  {password ? (password.length >= 8 ? "✓" : "✗") : "○"} At least 8 characters
+                </span>
+                <br />
+                <span className={password ? (!/^\d+$/.test(password) ? "text-green-600" : "text-red-600") : "text-slate-400"}>
+                  {password ? (!/^\d+$/.test(password) ? "✓" : "✗") : "○"} Not entirely numeric
+                </span>
+              </p>
             </div>
 
-            <div>
+            <div className="relative">
               <label
                 htmlFor="confirmPassword"
                 className="block text-sm font-medium text-slate-700"
               >
                 Confirm Password
               </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="mt-1 w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="mt-1 w-full pr-16 px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-sm text-slate-600 hover:text-slate-800"
+                >
+                  {showConfirmPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+              <p className="text-green-600 text-sm mt-1">
+                {confirmPassword && password === confirmPassword ? "✓ Passwords match" : "\u00A0"}
+              </p>
             </div>
 
             <button
