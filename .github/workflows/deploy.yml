@@ -65,7 +65,9 @@ jobs:
       - name: Run frontend tests
         run: |
           cd frontend
-          npm run test:ci
+          npx playwright test --project=chromium --reporter=line --timeout=10000 --workers=1
+        env:
+          DEBUG: pw:api,pw:browser
 
   # Deploy job (CD) - only runs if tests pass
   deploy:
