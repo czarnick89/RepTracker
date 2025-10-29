@@ -33,16 +33,11 @@ export default function ExerciseCard({
   const selectingFromDropdownRef = useRef(false); // Flag to prevent blur-triggered save when selecting from dropdown
 
   const weightInputRef = useRef(null); // Ref for weight input for potential programmatic focus
+  const repsInputRef = useRef(null); // Ref for reps input to check focus transitions
   const nameInputRef = useRef(null); // Ref for the exercise name input so we can focus it
   const focusTimerRef = useRef(null);
 
   const exerciseInfoCache = useRef({}); // Cache exercise info to avoid redundant API calls
-
-  // Sync local state if exercise prop updates
-  useEffect(() => {
-    setExerciseName(exercise.name);
-    setSets(exercise.sets);
-  }, [exercise]);
 
   // Cooldown timer effect for question mark button
   useEffect(() => {
@@ -210,7 +205,7 @@ export default function ExerciseCard({
         focusTimerRef.current = null;
       }
     };
-  }, [newSetId, sets]);
+  }, [newSetId]); // Removed 'sets' dependency to prevent refocusing on every keystroke
 
   // Fetch exercise info from API or cache
   const fetchExerciseInfo = async (name) => {
@@ -454,12 +449,16 @@ export default function ExerciseCard({
             {/* Editable reps */}
             <input
               type="number"
+              ref={set.id === newSetId ? repsInputRef : null}
               className="w-10 text-center bg-gray-700 text-white rounded no-spin"
               value={formatNumber(set.reps)}
               onChange={(e) => handleSetChange(set.id, "reps", e.target.value)}
-              onBlur={() => {
+              onBlur={(e) => {
                 if (set.id === newSetId) {
-                  handleNewSetBlur(set);
+                  // Only submit if focus is leaving the form (not moving to weight input)
+                  if (e.relatedTarget !== weightInputRef.current) {
+                    handleNewSetBlur(set);
+                  }
                 } else {
                   updateSet(
                     set.id,
@@ -481,9 +480,12 @@ export default function ExerciseCard({
               onChange={(e) =>
                 handleSetChange(set.id, "weight", e.target.value)
               }
-              onBlur={() => {
+              onBlur={(e) => {
                 if (set.id === newSetId) {
-                  handleNewSetBlur(set);
+                  // Only submit if focus is leaving the form (not moving to reps input)
+                  if (e.relatedTarget !== repsInputRef.current) {
+                    handleNewSetBlur(set);
+                  }
                 } else {
                   updateSet(
                     set.id,
