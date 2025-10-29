@@ -16,7 +16,6 @@ export default function ExerciseCard({
 }) {
   const [exerciseName, setExerciseName] = useState(exercise.name); // State for exercise name
   const [sets, setSets] = useState(exercise.sets); // Local copy of sets to update UI, actual update of these values happen?
-  const [newSetId, setNewSetId] = useState(null); // Tracks which set is new and pending save
   const [showDeleteModal, setShowDeleteModal] = useState(false); // Track if delete modal for sets is open
   const [setToDelete, setSetToDelete] = useState(null); // Holds set to delete during delete flow
 
@@ -32,17 +31,9 @@ export default function ExerciseCard({
 
   const selectingFromDropdownRef = useRef(false); // Flag to prevent blur-triggered save when selecting from dropdown
 
-  const weightInputRef = useRef(null); // Ref for weight input for potential programmatic focus
   const nameInputRef = useRef(null); // Ref for the exercise name input so we can focus it
-  const focusTimerRef = useRef(null);
 
   const exerciseInfoCache = useRef({}); // Cache exercise info to avoid redundant API calls
-
-  // Sync local state if exercise prop updates
-  useEffect(() => {
-    setExerciseName(exercise.name);
-    setSets(exercise.sets);
-  }, [exercise]);
 
   // Cooldown timer effect for question mark button
   useEffect(() => {
@@ -136,13 +127,6 @@ export default function ExerciseCard({
 
   // Delete a set either locally or from backend
   const deleteSet = (setId) => {
-    if (setId < 0) {
-      // Remove locally
-      setSets((prev) => prev.filter((s) => s.id !== setId));
-      if (newSetId === setId) setNewSetId(null);
-      return;
-    }
-
     api
       .delete(
         // Send delete request to backend for set
@@ -160,57 +144,15 @@ export default function ExerciseCard({
     );
   };
 
-  // Handle add new set on front end
-  const handleAddNewSet = () => {
-    // Create a temp set id for local tracking (negative to avoid clashing)
-    const tempId = Math.min(...sets.map((s) => s.id), 0) - 1;
-    const blankSet = { id: tempId, reps: "", weight: "" };
-    setSets((prev) => [...prev, blankSet]); // Add new set to state
-    setNewSetId(tempId); // Keep track of the temp id
-
-    // Workaround for mobile: many mobile browsers will only open the keyboard
-    // if focus is called synchronously inside the user gesture event handler.
-    // The new weight input isn't in the DOM yet, so focus the already-mounted
-    // name input synchronously to open the keyboard, then the effect that
-    // focuses the weight input after render will transfer focus to it.
-    if (nameInputRef.current) {
-      try {
-        nameInputRef.current.focus();
-        const v = nameInputRef.current.value || "";
-        nameInputRef.current.setSelectionRange(v.length, v.length);
-      } catch (e) {
-        // ignore
-      }
+    // Handle add new set on front end
+  const handleAddNewSet = async () => {
+    try {
+      const newSet = await createNewSet(0, 0);  // Create empty set immediately
+      setSets((prev) => [...prev, newSet]);      // Add to UI
+    } catch (err) {
+      console.error("Failed to create new set", err);
     }
   };
-
-  // When a newSetId is set, attempt to focus the weight input reliably after render.
-  useEffect(() => {
-    if (newSetId == null) return;
-
-    // Wait for the browser to render the new input. Use rAF then a small timeout
-    const raf = requestAnimationFrame(() => {
-      focusTimerRef.current = setTimeout(() => {
-        if (weightInputRef.current) {
-          try {
-            weightInputRef.current.focus();
-            const val = weightInputRef.current.value || "";
-            weightInputRef.current.setSelectionRange(val.length, val.length);
-          } catch (e) {
-            // ignore focus errors
-          }
-        }
-      }, 30);
-    });
-
-    return () => {
-      cancelAnimationFrame(raf);
-      if (focusTimerRef.current) {
-        clearTimeout(focusTimerRef.current);
-        focusTimerRef.current = null;
-      }
-    };
-  }, [newSetId, sets]);
 
   // Fetch exercise info from API or cache
   const fetchExerciseInfo = async (name) => {
@@ -263,7 +205,7 @@ export default function ExerciseCard({
   // Validate reps input
   const isValidReps = (val) => {
     const num = Number(val);
-    return Number.isInteger(num) && num > 0;
+    return Number.isInteger(num) && num >= 0;  // Allow 0 reps
   };
 
   // Validate weight input
@@ -300,25 +242,6 @@ export default function ExerciseCard({
     const n = Number(num);
     if (Number.isNaN(n)) return "";
     return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace(/\.?0+$/, "");
-  };
-
-  // Handle blur event on a new set to save it to backend
-  const handleNewSetBlur = (set) => {
-    if (set.id === newSetId) {
-      if (isValidReps(set.reps) && isValidWeight(set.weight)) {
-        createNewSet(set.reps, set.weight)
-          .then((createdSet) => {
-            // Replace temp set with backend set (with proper id)
-            setSets((prev) =>
-              prev.map((s) => (s.id === newSetId ? createdSet : s))
-            );
-            setNewSetId(null);
-          })
-          .catch(() => {
-            // Add logic to keep or discard 
-          });
-      }
-    }
   };
 
   // Convert empty or invalid weight to 0
@@ -458,15 +381,11 @@ export default function ExerciseCard({
               value={formatNumber(set.reps)}
               onChange={(e) => handleSetChange(set.id, "reps", e.target.value)}
               onBlur={() => {
-                if (set.id === newSetId) {
-                  handleNewSetBlur(set);
-                } else {
-                  updateSet(
-                    set.id,
-                    sets.find((s) => s.id === set.id).reps,
-                    set.weight
-                  );
-                }
+                updateSet(
+                  set.id,
+                  sets.find((s) => s.id === set.id).reps,
+                  set.weight
+                );
               }}
             />
 
@@ -475,22 +394,17 @@ export default function ExerciseCard({
             {/* Editable weight */}
             <input
               type="number"
-              ref={set.id === newSetId ? weightInputRef : null}
               className="w-18 text-center bg-gray-700 text-white rounded no-spin"
               value={formatNumber(set.weight)}
               onChange={(e) =>
                 handleSetChange(set.id, "weight", e.target.value)
               }
               onBlur={() => {
-                if (set.id === newSetId) {
-                  handleNewSetBlur(set);
-                } else {
-                  updateSet(
-                    set.id,
-                    set.reps,
-                    sets.find((s) => s.id === set.id).weight
-                  );
-                }
+                updateSet(
+                  set.id,
+                  set.reps,
+                  sets.find((s) => s.id === set.id).weight
+                );
               }}
               step="any"
               inputMode="decimal"
