@@ -290,7 +290,8 @@ export default function Dashboard() {
         onCancel={() => setExerciseToDelete(null)}
       />
 
-      <div className="flex items-center justify-center mb-5 px-5 max-w-xl mx-auto relative">
+      <div className="sticky top-[56px] z-20 bg-blue-900 py-3 -mx-5 px-5 mb-5">
+        <div className="flex items-center justify-center max-w-xl mx-auto relative">
         <button
           onClick={() =>
             setNewWorkout({
@@ -310,6 +311,7 @@ export default function Dashboard() {
         >
           🗑️
         </button>
+        </div>
       </div>
 
       {newWorkout && (

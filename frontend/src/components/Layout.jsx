@@ -14,9 +14,9 @@ export default function Layout() {
   };
 
   return (
-    <div className="relative min-h-screen bg-blue-900 text-white">
+    <div className="min-h-screen bg-blue-900 text-white">
       {/* Navbar */}
-      <nav className="bg-gray-800 text-white p-4 flex items-center justify-center relative">
+      <nav className="bg-gray-800 text-white p-4 flex items-center justify-center sticky top-0 z-30">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="text-white text-2xl absolute left-4"
@@ -80,7 +80,7 @@ export default function Layout() {
         onCancel={() => setLogoutModalOpen(false)}
       />
 
-      {/* Page content */}
+      {/* Page content - add padding-top to account for sticky navbar */}
       <main className="p-5">
         <Outlet />
       </main>
