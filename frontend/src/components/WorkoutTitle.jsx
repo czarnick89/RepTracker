@@ -2,7 +2,7 @@ import React from "react";
 import { useState } from "react";
 
 // 
-function WorkoutTitle({ workout, onNameUpdate, onDelete, showDeleteButton}) {
+function WorkoutTitle({ workout, onNameUpdate, onDelete, showDeleteButton, flashStatus }) {
   const [isEditing, setIsEditing] = useState(false); // Store isEditing state
   const [name, setName] = React.useState(workout?.name || 'Untitled Workout'); // Store name, default to workout.name
 
@@ -23,7 +23,10 @@ function WorkoutTitle({ workout, onNameUpdate, onDelete, showDeleteButton}) {
   };
 
   return (
-    <div className="flex items-center justify-between">
+    <div className={`flex items-center justify-between rounded ${
+      flashStatus === 'success' ? 'flash-success' : 
+      flashStatus === 'error' ? 'flash-error' : ''
+    }`}>
       {isEditing ? (
         <input
           type="text"
