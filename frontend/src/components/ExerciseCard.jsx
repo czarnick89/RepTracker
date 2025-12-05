@@ -13,11 +13,21 @@ export default function ExerciseCard({
   onWeightPreferenceChange,
   autoFocus,
   onAutoFocusComplete,
+  flashStatus, // 'success' | 'error' | undefined - passed from parent for exercise-level flash
 }) {
   const [exerciseName, setExerciseName] = useState(exercise.name); // State for exercise name
   const [sets, setSets] = useState(exercise.sets); // Local copy of sets to update UI, actual update of these values happen?
   const [showDeleteModal, setShowDeleteModal] = useState(false); // Track if delete modal for sets is open
   const [setToDelete, setSetToDelete] = useState(null); // Holds set to delete during delete flow
+
+  // Track original set values to detect changes (keyed by set id)
+  const [originalSets, setOriginalSets] = useState(() => {
+    const map = {};
+    exercise.sets.forEach(s => {
+      map[s.id] = { reps: s.reps, weight: s.weight };
+    });
+    return map;
+  });
 
   const [filteredExercises, setFilteredExercises] = useState([]); // Auto-suggest dropdown state, list of exercises
   const [showDropdown, setShowDropdown] = useState(false); // Dropdown state, not showing by default
@@ -28,6 +38,9 @@ export default function ExerciseCard({
   const [errorInfo, setErrorInfo] = useState(null);
 
   const [cooldown, setCooldown] = useState(0); // Cooldown state so you can't spam click info button
+
+  // Flash feedback state for save success/error
+  const [flashState, setFlashState] = useState({}); // { [setId]: 'success' | 'error', exerciseName: 'success' | 'error' }
 
   const selectingFromDropdownRef = useRef(false); // Flag to prevent blur-triggered save when selecting from dropdown
 
@@ -42,6 +55,19 @@ export default function ExerciseCard({
       return () => clearTimeout(timer);
     }
   }, [cooldown]);
+
+  // Helper to trigger flash feedback on an element
+  const triggerFlash = (key, status) => {
+    setFlashState((prev) => ({ ...prev, [key]: status }));
+    // Clear flash after animation completes
+    setTimeout(() => {
+      setFlashState((prev) => {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
+      });
+    }, 600);
+  };
 
   // Save exercise name on blur UNLESS selecting from dropdown
   const handleExerciseNameBlur = () => {
@@ -97,13 +123,35 @@ export default function ExerciseCard({
   const updateSet = (setId, newReps, newWeight) => {
     if (setId < 0) return; // don't PATCH sets that haven't been created yet
 
+    // Check if values actually changed from original
+    const original = originalSets[setId];
+    const normalizedNewWeight = normalizeWeight(newWeight);
+    const normalizedOrigWeight = normalizeWeight(original?.weight);
+    
+    if (original && 
+        Number(newReps) === Number(original.reps) && 
+        normalizedNewWeight === normalizedOrigWeight) {
+      return; // No change, skip the API call
+    }
+
     api
       .patch(
         // Use api to request the backend update the set reps, weight, or both
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/${setId}/`,
-        { reps: Number(newReps), weight: normalizeWeight(newWeight) }
+        { reps: Number(newReps), weight: normalizedNewWeight }
       )
-      .catch((err) => console.error("Failed to update set", err));
+      .then(() => {
+        triggerFlash(`set-${setId}`, 'success');
+        // Update original values after successful save
+        setOriginalSets(prev => ({
+          ...prev,
+          [setId]: { reps: Number(newReps), weight: normalizedNewWeight }
+        }));
+      })
+      .catch((err) => {
+        console.error("Failed to update set", err);
+        triggerFlash(`set-${setId}`, 'error');
+      });
   };
 
   // Create a new set on the backend
@@ -133,6 +181,12 @@ export default function ExerciseCard({
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/workouts/sets/${setId}/`)
       .then(() => {
         setSets((prev) => prev.filter((s) => s.id !== setId)); // remove set from local state after delete on back end
+        // Also remove from originalSets tracking
+        setOriginalSets((prev) => {
+          const updated = { ...prev };
+          delete updated[setId];
+          return updated;
+        });
       })
       .catch((err) => console.error("Failed to delete set", err));
   };
@@ -149,6 +203,11 @@ export default function ExerciseCard({
     try {
       const newSet = await createNewSet(0, 0);  // Create empty set immediately
       setSets((prev) => [...prev, newSet]);      // Add to UI
+      // Track original values for the new set
+      setOriginalSets((prev) => ({
+        ...prev,
+        [newSet.id]: { reps: newSet.reps, weight: newSet.weight }
+      }));
     } catch (err) {
       console.error("Failed to create new set", err);
     }
@@ -253,7 +312,10 @@ export default function ExerciseCard({
   };
 
   return (
-    <div className="bg-gray-800 rounded-md p-4 m-2 flex-grow min-w-[200px] max-w-[340px] border border-gray-600">
+    <div className={`bg-gray-800 rounded-md p-4 m-2 flex-grow min-w-[200px] max-w-[340px] border border-gray-600 ${
+      flashStatus === 'success' ? 'flash-success' : 
+      flashStatus === 'error' ? 'flash-error' : ''
+    }`}>
       <div className="relative mb-4 w-full">
         <div className="flex items-center gap-2 w-full">
           {/* Info button */}
@@ -372,7 +434,10 @@ export default function ExerciseCard({
         {sets.map((set) => (
           <div
             key={set.id}
-            className="flex justify-center gap-2 border-b border-gray-600 pb-1 w-full"
+            className={`flex justify-center gap-2 border-b border-gray-600 pb-1 w-full rounded ${
+              flashState[`set-${set.id}`] === 'success' ? 'flash-success' : 
+              flashState[`set-${set.id}`] === 'error' ? 'flash-error' : ''
+            }`}
           >
             {/* Editable reps */}
             <input

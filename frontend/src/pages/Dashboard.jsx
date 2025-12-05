@@ -24,10 +24,26 @@ export default function Dashboard() {
   const [exerciseToDelete, setExerciseToDelete] = useState(null); // object {workoutId, exerciseId}
   const [showDeleteButtons, setShowDeleteButtons] = useState(false); // toggle delete buttons for UX
 
+  // Flash feedback state for save success/error
+  const [flashState, setFlashState] = useState({}); // { [key]: 'success' | 'error' }
+
   // Pagination state
   const [offset, setOffset] = useState(0); // for API pagination
   const [hasMore, setHasMore] = useState(true); // track if more workouts are available
   const PAGE_SIZE = 10; // number of workouts per API call
+
+  // Helper to trigger flash feedback on an element
+  const triggerFlash = (key, status) => {
+    setFlashState((prev) => ({ ...prev, [key]: status }));
+    // Clear flash after animation completes
+    setTimeout(() => {
+      setFlashState((prev) => {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
+      });
+    }, 600);
+  };
 
   // Fetch recent workouts on load
   useEffect(() => {
@@ -123,8 +139,11 @@ export default function Dashboard() {
         // Return new state object
         return { ...prev, [workoutId]: updatedExercises };
       });
+      // Return success for flash feedback
+      return { success: true, exerciseId: tempId };
     } catch (error) {
       console.error("Failed to create new exercise", error);
+      return { success: false, exerciseId: tempId };
     }
   };
 
@@ -133,7 +152,8 @@ export default function Dashboard() {
     if (exercise.id < 0) {
       // If exercise has a temporary negative ID, it's a new exercise
       // Call handleSaveNewExercise to create it on the backend
-      await handleSaveNewExercise(exercise.workoutId, exercise.id, newName);
+      const result = await handleSaveNewExercise(exercise.workoutId, exercise.id, newName);
+      triggerFlash(`exercise-${exercise.id}`, result.success ? 'success' : 'error');
     } else {
       // If exercise already exists in backend, update its name via PATCH
       try {
@@ -141,8 +161,10 @@ export default function Dashboard() {
           name: newName,
           workout: exercise.workoutId,
         });
+        triggerFlash(`exercise-${exercise.id}`, 'success');
       } catch (error) {
         console.error("Failed to update exercise name", error);
+        triggerFlash(`exercise-${exercise.id}`, 'error');
       }
     }
   };
@@ -214,8 +236,10 @@ export default function Dashboard() {
       : w // Leave other workouts unchanged
         )
       );
+      triggerFlash(`workout-${workoutId}`, 'success');
     } catch (error) {
       console.error("Failed to update workout name", error);
+      triggerFlash(`workout-${workoutId}`, 'error');
     }
   };
 
@@ -248,26 +272,25 @@ export default function Dashboard() {
     newPreference
   ) => {
     try {
-      // Update local state for render
-      setExercisesByWorkout((prev) => {
-        // Map through exercises of the given workout
-        const updatedExercises = prev[workoutId].map((ex) =>
-          ex.id === exerciseId
-            ? { ...ex, weight_change_preference: newPreference } // update only the matching exercise
-            : ex // Leave the others alone
-        );
-        // Return a new object with the updated exercises array for this workout
-        return { ...prev, [workoutId]: updatedExercises };
-      });
-
-      await api.patch(
-        // Send request to backend to save this change
+      // Send request to backend first, wait for confirmation
+      const res = await api.patch(
         `/api/v1/workouts/exercises/${exerciseId}/`,
         { weight_change_preference: newPreference }
       );
+
+      // Only update local state after backend confirms success
+      setExercisesByWorkout((prev) => {
+        const updatedExercises = prev[workoutId].map((ex) =>
+          ex.id === exerciseId
+            ? { ...ex, weight_change_preference: res.data.weight_change_preference }
+            : ex
+        );
+        return { ...prev, [workoutId]: updatedExercises };
+      });
+      triggerFlash(`exercise-${exerciseId}`, 'success');
     } catch (err) {
       console.error("Failed to update weight preference:", err);
-      // Need to revert front end state if above fails?
+      triggerFlash(`exercise-${exerciseId}`, 'error');
     }
   };
 
@@ -349,6 +372,7 @@ export default function Dashboard() {
                 onNameUpdate={handleWorkoutNameUpdate}
                 onDelete={() => setWorkoutToDelete(workout.id)}
                 showDeleteButton={showDeleteButtons}
+                flashStatus={flashState[`workout-${workout.id}`]}
               />
             }
           >
@@ -374,6 +398,7 @@ export default function Dashboard() {
                   }
                   autoFocus={exercise.id === focusExerciseId}
                   onAutoFocusComplete={() => setFocusExerciseId(null)}
+                  flashStatus={flashState[`exercise-${exercise.id}`]}
                 />
               ))}
             </div>
