@@ -374,17 +374,29 @@ export default function Dashboard() {
         <Accordion
           key={newWorkout.id}
           title={
-            <input
-              type="text"
-              autoFocus
-              value={newWorkout.name}
-              onChange={(e) =>
-                setNewWorkout({ ...newWorkout, name: e.target.value })
-              }
-              onBlur={handleNewWorkoutNameBlur}
-              className="bg-gray-700 text-white font-semibold rounded px-2 py-1 w-full"
-              placeholder="Enter workout name"
-            />
+            <div className="flex items-center justify-between">
+              <input
+                type="text"
+                autoFocus
+                value={newWorkout.name}
+                onChange={(e) =>
+                  setNewWorkout({ ...newWorkout, name: e.target.value })
+                }
+                onBlur={handleNewWorkoutNameBlur}
+                className="bg-gray-700 text-white font-semibold rounded px-2 py-1 w-full"
+                placeholder="Enter workout name"
+              />
+              {showDeleteButtons && (
+                <button
+                  onClick={() => setNewWorkout(null)}
+                  className="ml-2 text-red-600 hover:text-red-800 font-bold"
+                  title="Delete workout"
+                  aria-label="Delete new workout"
+                >
+                  🗑️
+                </button>
+              )}
+            </div>
           }
         >
           <div className="p-4 text-gray-400">
