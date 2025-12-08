@@ -200,6 +200,12 @@ export default function ExerciseCard({
 
     // Handle add new set on front end
   const handleAddNewSet = async () => {
+    // Prevent adding sets to unsaved exercises (those with negative temp IDs)
+    if (exercise.id < 0) {
+      alert("Please save the exercise name before adding sets.");
+      return;
+    }
+    
     try {
       const newSet = await createNewSet(0, 0);  // Create empty set immediately
       setSets((prev) => [...prev, newSet]);      // Add to UI

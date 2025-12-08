@@ -174,6 +174,24 @@ export default function Dashboard() {
     // Exit early if no exercise is selected for deletion
     if (!exerciseToDelete) return;
     const { workoutId, exerciseId } = exerciseToDelete;
+    
+    // If exercise has a temporary negative ID, it hasn't been saved to backend yet
+    // Just remove it from frontend state without making an API call
+    if (exerciseId < 0) {
+      setExercisesByWorkout((prev) => {
+        const updated = { ...prev };
+        // Filter out the unsaved exercise from its workout's array
+        updated[workoutId] = updated[workoutId].filter(
+          (e) => e.id !== exerciseId
+        );
+        return updated;
+      });
+      // Clear the temporary deletion state
+      setExerciseToDelete(null);
+      return;
+    }
+    
+    // For exercises that exist on the backend, send DELETE request
     try {
       // Send DELETE request to backend to remove exercise
       await api.delete(`/api/v1/workouts/exercises/${exerciseId}/`);
@@ -247,6 +265,21 @@ export default function Dashboard() {
   const handleDeleteWorkout = async () => {
     // Guard clause: exit early if no workout is selected for deletion
     if (!workoutToDelete) return;
+    
+    // If workout has a temporary negative ID, it hasn't been saved to backend yet
+    // Just remove it from frontend state without making an API call
+    if (workoutToDelete < 0) {
+      setWorkouts((prev) => prev.filter((w) => w.id !== workoutToDelete));
+      setExercisesByWorkout((prev) => {
+        const updated = { ...prev };
+        delete updated[workoutToDelete];
+        return updated;
+      });
+      setWorkoutToDelete(null);
+      return;
+    }
+    
+    // For workouts that exist on the backend, send DELETE request
     try {
       // Send DELETE request to backend to remove the workout
       await api.delete(`/api/v1/workouts/workouts/${workoutToDelete}/`);
@@ -341,17 +374,29 @@ export default function Dashboard() {
         <Accordion
           key={newWorkout.id}
           title={
-            <input
-              type="text"
-              autoFocus
-              value={newWorkout.name}
-              onChange={(e) =>
-                setNewWorkout({ ...newWorkout, name: e.target.value })
-              }
-              onBlur={handleNewWorkoutNameBlur}
-              className="bg-gray-700 text-white font-semibold rounded px-2 py-1 w-full"
-              placeholder="Enter workout name"
-            />
+            <div className="flex items-center justify-between">
+              <input
+                type="text"
+                autoFocus
+                value={newWorkout.name}
+                onChange={(e) =>
+                  setNewWorkout({ ...newWorkout, name: e.target.value })
+                }
+                onBlur={handleNewWorkoutNameBlur}
+                className="bg-gray-700 text-white font-semibold rounded px-2 py-1 w-full"
+                placeholder="Enter workout name"
+              />
+              {showDeleteButtons && (
+                <button
+                  onClick={() => setNewWorkout(null)}
+                  className="ml-2 text-red-600 hover:text-red-800 font-bold"
+                  title="Delete workout"
+                  aria-label="Delete new workout"
+                >
+                  🗑️
+                </button>
+              )}
+            </div>
           }
         >
           <div className="p-4 text-gray-400">
