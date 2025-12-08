@@ -251,9 +251,21 @@ export default function ExerciseCard({
   };
 
   // Handle canceling bulk set creation
-  const handleCancelBulkCreation = () => {
+  const handleCancelBulkCreation = async () => {
     setBulkCreationDeclined(true);
     setShowBulkSetModal(false);
+    
+    // Create a single empty set since that's what the user was trying to do
+    try {
+      const newSet = await createNewSet(0, 0);
+      setSets((prev) => [...prev, newSet]);
+      setOriginalSets((prev) => ({
+        ...prev,
+        [newSet.id]: { reps: newSet.reps, weight: newSet.weight }
+      }));
+    } catch (err) {
+      console.error("Failed to create new set", err);
+    }
   };
 
   // Fetch exercise info from API or cache
