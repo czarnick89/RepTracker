@@ -21,6 +21,7 @@ export default function ExerciseCard({
   const [showDeleteModal, setShowDeleteModal] = useState(false); // Track if delete modal for sets is open
   const [setToDelete, setSetToDelete] = useState(null); // Holds set to delete during delete flow
   const [showBulkSetModal, setShowBulkSetModal] = useState(false); // Track if bulk set creation modal is open
+  const [bulkCreationDeclined, setBulkCreationDeclined] = useState(false); // Track if user declined bulk creation
 
   // Track original set values to detect changes (keyed by set id)
   const [originalSets, setOriginalSets] = useState(() => {
@@ -208,8 +209,8 @@ export default function ExerciseCard({
       return;
     }
     
-    // If this is the first set, show the bulk creation modal
-    if (sets.length === 0) {
+    // If this is the first set and user hasn't declined bulk creation, show the modal
+    if (sets.length === 0 && !bulkCreationDeclined) {
       setShowBulkSetModal(true);
       return;
     }
@@ -247,6 +248,12 @@ export default function ExerciseCard({
     } catch (err) {
       console.error("Failed to create bulk sets", err);
     }
+  };
+
+  // Handle canceling bulk set creation
+  const handleCancelBulkCreation = () => {
+    setBulkCreationDeclined(true);
+    setShowBulkSetModal(false);
   };
 
   // Fetch exercise info from API or cache
@@ -562,7 +569,7 @@ export default function ExerciseCard({
       <BulkSetModal
         isOpen={showBulkSetModal}
         onAccept={handleBulkSetCreation}
-        onCancel={() => setShowBulkSetModal(false)}
+        onCancel={handleCancelBulkCreation}
       />
 
       {/* Create New Set Button */}
