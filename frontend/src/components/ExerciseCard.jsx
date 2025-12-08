@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import api from "../api/axiosRefreshInterceptor";
 import { exerciseNames } from "../data/exerciseNames";
 import InfoModal from "./InfoModal";
+import BulkSetModal from "./BulkSetModal";
 import Loading from "./Loading";
 import { getExerciseByName, getExerciseGifUrl } from "../api/exerciseDB";
 
@@ -19,6 +20,8 @@ export default function ExerciseCard({
   const [sets, setSets] = useState(exercise.sets); // Local copy of sets to update UI, actual update of these values happen?
   const [showDeleteModal, setShowDeleteModal] = useState(false); // Track if delete modal for sets is open
   const [setToDelete, setSetToDelete] = useState(null); // Holds set to delete during delete flow
+  const [showBulkSetModal, setShowBulkSetModal] = useState(false); // Track if bulk set creation modal is open
+  const [bulkCreationDeclined, setBulkCreationDeclined] = useState(false); // Track if user declined bulk creation
 
   // Track original set values to detect changes (keyed by set id)
   const [originalSets, setOriginalSets] = useState(() => {
@@ -206,10 +209,56 @@ export default function ExerciseCard({
       return;
     }
     
+    // If this is the first set and user hasn't declined bulk creation, show the modal
+    if (sets.length === 0 && !bulkCreationDeclined) {
+      setShowBulkSetModal(true);
+      return;
+    }
+    
+    // Otherwise, create a single empty set as before
     try {
       const newSet = await createNewSet(0, 0);  // Create empty set immediately
       setSets((prev) => [...prev, newSet]);      // Add to UI
       // Track original values for the new set
+      setOriginalSets((prev) => ({
+        ...prev,
+        [newSet.id]: { reps: newSet.reps, weight: newSet.weight }
+      }));
+    } catch (err) {
+      console.error("Failed to create new set", err);
+    }
+  };
+
+  // Handle bulk set creation from the modal
+  const handleBulkSetCreation = async (numSets, weight) => {
+    try {
+      // Create all sets with the specified weight
+      const newSets = [];
+      for (let i = 0; i < numSets; i++) {
+        const newSet = await createNewSet(0, weight);
+        newSets.push(newSet);
+        // Track original values for the new set
+        setOriginalSets((prev) => ({
+          ...prev,
+          [newSet.id]: { reps: newSet.reps, weight: newSet.weight }
+        }));
+      }
+      setSets((prev) => [...prev, ...newSets]);
+      setShowBulkSetModal(false);
+    } catch (err) {
+      console.error("Failed to create bulk sets", err);
+    }
+  };
+
+  // Handle canceling bulk set creation
+  const handleCancelBulkCreation = async () => {
+    setBulkCreationDeclined(true);
+    setShowBulkSetModal(false);
+    
+    // Create a single empty set since that's what the user was trying to do
+    try {
+      const newSet = await createNewSet(0, 0);
+      setSets((prev) => [...prev, newSet]);
       setOriginalSets((prev) => ({
         ...prev,
         [newSet.id]: { reps: newSet.reps, weight: newSet.weight }
@@ -527,6 +576,13 @@ export default function ExerciseCard({
           </div>
         </div>
       )}
+
+      {/* BULK SET CREATION MODAL */}
+      <BulkSetModal
+        isOpen={showBulkSetModal}
+        onAccept={handleBulkSetCreation}
+        onCancel={handleCancelBulkCreation}
+      />
 
       {/* Create New Set Button */}
       <div className="flex justify-center mt-4">
