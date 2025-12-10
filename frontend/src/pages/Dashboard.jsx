@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
+import { createPortal } from "react-dom";
 import Accordion from "../components/Accordion";
 import api from "../api/axiosRefreshInterceptor";
 import ExerciseCard from "../components/ExerciseCard";
@@ -8,6 +10,8 @@ import Loading from "../components/Loading";
 
 // Dashboard component: displays recent workouts, allows creating/editing/deleting workouts and exercises
 export default function Dashboard() {
+  const { isScrolled } = useOutletContext(); // Get scroll state from Layout
+  
   // Workouts and exercises state
   const [workouts, setWorkouts] = useState([]); // list of workouts
   const [loading, setLoading] = useState(true); // loading indicator
@@ -327,6 +331,31 @@ export default function Dashboard() {
     }
   };
 
+  // Action buttons component (New Workout + Trash toggle)
+  const ActionButtons = () => (
+    <div className="flex items-center justify-center gap-2">
+      <button
+        onClick={() =>
+          setNewWorkout({
+            id: tempWorkoutId,
+            name: "",
+            date: new Date().toISOString().slice(0, 10),
+          })
+        }
+        className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition font-semibold whitespace-nowrap"
+      >
+        New Workout
+      </button>
+
+      <button
+        onClick={() => setShowDeleteButtons((show) => !show)}
+        className="bg-red-600 text-white px-2 py-2 rounded-md hover:bg-red-700 transition font-semibold"
+      >
+        🗑️
+      </button>
+    </div>
+  );
+
   if (loading) return <Loading message="Loading workouts..." fullscreen={true} />;
 
   return (
@@ -346,29 +375,18 @@ export default function Dashboard() {
         onCancel={() => setExerciseToDelete(null)}
       />
 
-      <div className="sticky top-[56px] z-20 bg-blue-900 py-3 -mx-5 px-5 mb-5">
-        <div className="flex items-center justify-center max-w-xl mx-auto relative">
-        <button
-          onClick={() =>
-            setNewWorkout({
-              id: tempWorkoutId,
-              name: "",
-              date: new Date().toISOString().slice(0, 10),
-            })
-          }
-          className="bg-green-600 text-white px-8 py-3 rounded-md hover:bg-green-700 transition font-semibold"
-        >
-          New Workout
-        </button>
+      {/* Render buttons in navbar when scrolled, otherwise show in original position */}
+      {isScrolled && typeof document !== 'undefined' && document.getElementById('navbar-actions') &&
+        createPortal(<ActionButtons />, document.getElementById('navbar-actions'))
+      }
 
-        <button
-          onClick={() => setShowDeleteButtons((show) => !show)}
-          className="bg-red-600 text-white px-2 py-3 rounded-md hover:bg-red-700 transition font-semibold absolute right-5"
-        >
-          🗑️
-        </button>
+      {!isScrolled && (
+        <div className="bg-blue-900 py-3 -mx-5 px-5 mb-5">
+          <div className="flex items-center justify-center max-w-xl mx-auto">
+            <ActionButtons />
+          </div>
         </div>
-      </div>
+      )}
 
       {newWorkout && (
         <Accordion

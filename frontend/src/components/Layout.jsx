@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate, Outlet } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, Outlet, useOutletContext } from "react-router-dom";
 import ConfirmModal from "./ConfirmModal";
 
 // Layout component wraps all protected pages and provides Navbar, Sidebar, and Logout functionality
@@ -7,6 +7,16 @@ export default function Layout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false); // Sidebar visibility state
   const [logoutModalOpen, setLogoutModalOpen] = useState(false); // Logout confirmation modal state
+  const [isScrolled, setIsScrolled] = useState(false); // Track if page is scrolled
+
+  // Detect scroll to merge buttons into navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Handles logout click
   const handleLogout = () => {
@@ -16,22 +26,27 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-blue-900 text-white">
       {/* Navbar */}
-      <nav className="bg-gray-800 text-white p-4 flex items-center justify-center sticky top-0 z-30">
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="text-white text-2xl absolute left-4"
-          aria-label="Toggle Menu"
-        >
-          &#9776;
-        </button>
+      <nav className="bg-gray-800 text-white p-4 flex items-center justify-between sticky top-0 z-30">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="text-white text-2xl"
+            aria-label="Toggle Menu"
+          >
+            &#9776;
+          </button>
 
-        <Link
-          to="/dashboard"
-          className="text-xl font-bold hover:text-gray-300"
-          onClick={() => setSidebarOpen(false)}
-        >
-          RepTracker
-        </Link>
+          <Link
+            to="/dashboard"
+            className="text-xl font-bold hover:text-gray-300 transition-all duration-300"
+            onClick={() => setSidebarOpen(false)}
+          >
+            RepTracker
+          </Link>
+        </div>
+
+        {/* Placeholder for dashboard buttons - will be populated by Dashboard component */}
+        <div id="navbar-actions" className="flex items-center gap-2"></div>
       </nav>
 
       {/* Sidebar overlay */}
@@ -82,7 +97,7 @@ export default function Layout() {
 
       {/* Page content - add padding-top to account for sticky navbar */}
       <main className="p-5">
-        <Outlet />
+        <Outlet context={{ isScrolled }} />
       </main>
     </div>
   );
