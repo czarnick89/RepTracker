@@ -10,8 +10,6 @@ import Loading from "../components/Loading";
 
 // Dashboard component: displays recent workouts, allows creating/editing/deleting workouts and exercises
 export default function Dashboard() {
-  const { isScrolled } = useOutletContext(); // Get scroll state from Layout
-  
   // Workouts and exercises state
   const [workouts, setWorkouts] = useState([]); // list of workouts
   const [loading, setLoading] = useState(true); // loading indicator
@@ -375,18 +373,10 @@ export default function Dashboard() {
         onCancel={() => setExerciseToDelete(null)}
       />
 
-      {/* Render buttons in navbar when scrolled, otherwise show in original position */}
-      {isScrolled && typeof document !== 'undefined' && document.getElementById('navbar-actions') &&
+      {/* Render buttons in navbar */}
+      {typeof document !== 'undefined' && document.getElementById('navbar-actions') &&
         createPortal(<ActionButtons />, document.getElementById('navbar-actions'))
       }
-
-      {!isScrolled && (
-        <div className="bg-blue-900 py-3 -mx-5 px-5 mb-5">
-          <div className="flex items-center justify-center max-w-xl mx-auto">
-            <ActionButtons />
-          </div>
-        </div>
-      )}
 
       {newWorkout && (
         <Accordion

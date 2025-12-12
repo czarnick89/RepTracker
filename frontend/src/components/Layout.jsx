@@ -7,16 +7,6 @@ export default function Layout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false); // Sidebar visibility state
   const [logoutModalOpen, setLogoutModalOpen] = useState(false); // Logout confirmation modal state
-  const [isScrolled, setIsScrolled] = useState(false); // Track if page is scrolled
-
-  // Detect scroll to merge buttons into navbar
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Handles logout click
   const handleLogout = () => {
@@ -97,7 +87,7 @@ export default function Layout() {
 
       {/* Page content - add padding-top to account for sticky navbar */}
       <main className="p-5">
-        <Outlet context={{ isScrolled }} />
+        <Outlet />
       </main>
     </div>
   );
