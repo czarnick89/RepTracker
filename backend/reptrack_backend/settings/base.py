@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'sslserver',
     'django_extensions',
+    'drf_spectacular',
     # App specific
     'users',
     'workouts',
@@ -131,7 +132,8 @@ REST_FRAMEWORK = {
         'anon': '100/hour',
         'user': '1000/hour',
         'login': '5/minute', 
-    }
+    },
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SIMPLE_JWT = {
@@ -142,6 +144,27 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_COOKIE': 'access',
     'AUTH_COOKIE_REFRESH': 'refresh',
+}
+
+# ===============================
+# API DOCUMENTATION (drf-spectacular)
+# ===============================
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'RepTracker API',
+    'DESCRIPTION': 'A comprehensive workout tracking API that allows users to log workouts, track exercises, sets, reps, and weights. Includes integrations with Google Calendar and ExerciseDB API.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': False,
+        'filter': True,
+    },
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': '/api/v1/',
+    'SERVERS': [
+        {'url': BACKEND_URL, 'description': 'Current Environment'},
+    ],
 }
 
 # ===============================

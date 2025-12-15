@@ -18,6 +18,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
 
 # Local imports
 from .serializers import (
@@ -26,6 +28,7 @@ from .serializers import (
     MyTokenObtainPairSerializer,
 )
 from .throttles import LoginThrottle
+from . import schema_extensions  # Import to register the auth extension
 
 # ---------------------------
 # Model reference
@@ -35,6 +38,15 @@ User = get_user_model()
 # ===========================
 # User Registration and Email Verification
 # ===========================
+@extend_schema(
+    request=UserRegisterSerializer,
+    responses={
+        201: OpenApiResponse(description="User registered successfully. Verification email sent."),
+        400: OpenApiResponse(description="Invalid registration data."),
+    },
+    description="Register a new user account. User will be created as inactive and a verification email will be sent.",
+    tags=["Authentication"]
+)
 class RegisterView(APIView):
     """
     Registers a new user and sends an email verification link.
@@ -64,7 +76,18 @@ class RegisterView(APIView):
             )
             return Response({"detail": "Check your email to verify your account."}, status=s.HTTP_201_CREATED)
         return Response(serializer.errors, status=s.HTTP_400_BAD_REQUEST)
-    
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter(name='uidb64', type=OpenApiTypes.STR, location=OpenApiParameter.PATH, description='Base64 encoded user ID'),
+        OpenApiParameter(name='token', type=OpenApiTypes.STR, location=OpenApiParameter.PATH, description='Email verification token'),
+    ],
+    responses={
+        302: OpenApiResponse(description="Redirect to frontend with verification status."),
+    },
+    description="Verify user email address via token link. Redirects to frontend login page.",
+    tags=["Authentication"]
+)    
 class VerifyEmailView(APIView):
     """
     Handles verification link clicks from the email.
@@ -135,7 +158,15 @@ class MyTokenObtainPairView(TokenObtainPairView):
         )
 
         return response
-    
+
+@extend_schema(
+    request=None,
+    responses={
+        200: OpenApiResponse(description="Logout successful. Cookies cleared."),
+    },
+    description="Logout user by blacklisting refresh token and clearing authentication cookies.",
+    tags=["Authentication"]
+)
 class LogoutView(APIView):
     """
     Logs out a user by blacklisting refresh token and deleting cookies.
@@ -207,6 +238,15 @@ class CookieTokenRefreshView(TokenRefreshView):
 # ===========================
 # Password Reset / Change
 # ===========================
+@extend_schema(
+    request={'application/json': {'type': 'object', 'properties': {'email': {'type': 'string', 'format': 'email'}}}},
+    responses={
+        200: OpenApiResponse(description="Password reset email sent if account exists."),
+        400: OpenApiResponse(description="Email is required."),
+    },
+    description="Request a password reset email. Returns success regardless of whether email exists (prevents enumeration).",
+    tags=["Authentication"]
+)
 class PasswordResetRequestView(APIView):
     """
     Sends a password reset email if the user exists.
@@ -237,7 +277,20 @@ class PasswordResetRequestView(APIView):
         )
 
         return Response({"detail": "If that email is registered, a reset link has been sent."})
-    
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter(name='uidb64', type=OpenApiTypes.STR, location=OpenApiParameter.PATH, description='Base64 encoded user ID'),
+        OpenApiParameter(name='token', type=OpenApiTypes.STR, location=OpenApiParameter.PATH, description='Password reset token'),
+    ],
+    request={'application/json': {'type': 'object', 'properties': {'password': {'type': 'string', 'minLength': 8}}}},
+    responses={
+        200: OpenApiResponse(description="Password reset successful."),
+        400: OpenApiResponse(description="Invalid token or password validation failed."),
+    },
+    description="Confirm password reset with token and set new password.",
+    tags=["Authentication"]
+)
 class PasswordResetConfirmView(APIView):
     """
     Confirms password reset using token, validates new password, and sets it.
@@ -265,7 +318,19 @@ class PasswordResetConfirmView(APIView):
         user.save()
 
         return Response({"detail": "Password has been reset successfully."}, status=s.HTTP_200_OK)
-    
+
+@extend_schema(
+    request={'application/json': {'type': 'object', 'properties': {
+        'old_password': {'type': 'string'},
+        'new_password': {'type': 'string', 'minLength': 8}
+    }}},
+    responses={
+        200: OpenApiResponse(description="Password changed successfully."),
+        400: OpenApiResponse(description="Old password incorrect or new password invalid."),
+    },
+    description="Change password for authenticated user. Requires old password verification.",
+    tags=["User Profile"]
+)
 class ChangePasswordView(APIView):
     """
     Authenticated user can change password by providing old and new passwords.
@@ -294,7 +359,16 @@ class ChangePasswordView(APIView):
 
 # ===========================
 # User Profile
-# ===========================    
+# ===========================
+@extend_schema(
+    request=UserProfileSerializer,
+    responses={
+        200: UserProfileSerializer,
+        400: OpenApiResponse(description="Invalid profile data."),
+    },
+    description="Get or update the authenticated user's profile information.",
+    tags=["User Profile"]
+)
 class UserProfileView(APIView):
     """
     Retrieve or update authenticated user's profile.
@@ -315,6 +389,16 @@ class UserProfileView(APIView):
 # ===========================
 # Resend Verification Email - CURRENTLY UNUSED?
 # ===========================
+@extend_schema(
+    request={'application/json': {'type': 'object', 'properties': {'email': {'type': 'string', 'format': 'email'}}}},
+    responses={
+        200: OpenApiResponse(description="Verification email resent."),
+        400: OpenApiResponse(description="Account already verified."),
+        404: OpenApiResponse(description="User not found."),
+    },
+    description="Resend email verification link to inactive user account.",
+    tags=["Authentication"]
+)
 class ResendVerificationEmailView(APIView):
     """
     Resends email verification link to inactive users.
