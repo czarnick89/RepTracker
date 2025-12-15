@@ -17,6 +17,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from google_auth_oauthlib.flow import Flow
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
+from drf_spectacular.types import OpenApiTypes
 
 # Local app imports
 from .models import (
@@ -43,6 +45,17 @@ User = get_user_model()
 # ------------------------------
 # Proxy views for external exerciseDB API
 # ------------------------------
+@extend_schema(
+    parameters=[
+        OpenApiParameter(name='name', type=OpenApiTypes.STR, location=OpenApiParameter.QUERY, description='Exercise name to search for'),
+    ],
+    responses={
+        200: OpenApiResponse(description="Exercise data from ExerciseDB API."),
+        400: OpenApiResponse(description="Missing name parameter."),
+    },
+    description="Proxy endpoint to fetch exercise information by name from ExerciseDB API.",
+    tags=["External API - ExerciseDB"]
+)
 class ExerciseByNameProxy(APIView):
     """
     Proxies requests to the ExerciseDB API to fetch exercise data by name.
@@ -66,6 +79,18 @@ class ExerciseByNameProxy(APIView):
             return Response({"detail": "Failed to fetch exercise from external API"}, status=resp.status_code)
         return Response(resp.json())
 
+@extend_schema(
+    parameters=[
+        OpenApiParameter(name='exerciseId', type=OpenApiTypes.STR, location=OpenApiParameter.QUERY, description='ExerciseDB exercise ID'),
+        OpenApiParameter(name='resolution', type=OpenApiTypes.STR, location=OpenApiParameter.QUERY, description='Image resolution (default: 180)', required=False),
+    ],
+    responses={
+        200: OpenApiResponse(description="Exercise GIF/image from ExerciseDB API."),
+        400: OpenApiResponse(description="Missing exerciseId parameter."),
+    },
+    description="Proxy endpoint to fetch exercise GIF/image from ExerciseDB API.",
+    tags=["External API - ExerciseDB"]
+)
 class ExerciseGifProxy(APIView):
     """
     Proxies requests to ExerciseDB to fetch exercise GIFs/images.
@@ -245,6 +270,14 @@ class TemplateWorkoutViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("You do not have permission to delete this template.")
         instance.delete()
 
+@extend_schema(
+    request=None,
+    responses={
+        302: OpenApiResponse(description="Redirect to Google OAuth consent screen."),
+    },
+    description="Initiate Google Calendar OAuth2 authentication flow.",
+    tags=["Google Calendar Integration"]
+)
 class GoogleCalendarAuthStart(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -288,6 +321,19 @@ class GoogleCalendarAuthStart(APIView):
         # Redirect the user to Google's consent page
         return redirect(authorization_url)
 
+@extend_schema(
+    request={'application/json': {'type': 'object', 'properties': {
+        'code': {'type': 'string', 'description': 'OAuth authorization code from Google'},
+        'state': {'type': 'string', 'description': 'OAuth state parameter for verification'}
+    }, 'required': ['code', 'state']}},
+    responses={
+        200: OpenApiResponse(description="Google Calendar linked successfully."),
+        400: OpenApiResponse(description="Missing code/state or invalid state."),
+        404: OpenApiResponse(description="User not found."),
+    },
+    description="Handle Google Calendar OAuth2 callback and store tokens. Called by frontend after user authorizes.",
+    tags=["Google Calendar Integration"]
+)
 class GoogleCalendarOAuth2Callback(APIView):
     """
     Receives `code` and `state` from the frontend, validates it,
@@ -366,6 +412,21 @@ class GoogleCalendarOAuth2Callback(APIView):
 
         return Response({"detail": "Google Calendar linked successfully."}, status=s.HTTP_200_OK)
 
+@extend_schema(
+    request={'application/json': {'type': 'object', 'properties': {
+        'summary': {'type': 'string'},
+        'start': {'type': 'object'},
+        'end': {'type': 'object'},
+        'description': {'type': 'string'}
+    }}},
+    responses={
+        200: OpenApiResponse(description="Workout added to Google Calendar."),
+        401: OpenApiResponse(description="Google Calendar authorization required."),
+        500: OpenApiResponse(description="Failed to add workout to calendar."),
+    },
+    description="Add a workout event to user's Google Calendar.",
+    tags=["Google Calendar Integration"]
+)
 class AddWorkoutToCalendar(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -391,6 +452,14 @@ class AddWorkoutToCalendar(APIView):
         created_event = service.events().insert(calendarId="primary", body=event).execute()
         return Response({"detail": "Event created", "event_id": created_event.get("id")})
 
+@extend_schema(
+    request=None,
+    responses={
+        200: OpenApiResponse(description="Google Calendar connection status."),
+    },
+    description="Check if user has connected their Google Calendar.",
+    tags=["Google Calendar Integration"]
+)
 class GoogleCalendarStatus(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -406,6 +475,14 @@ class GoogleCalendarStatus(APIView):
         response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         return response
 
+@extend_schema(
+    request=None,
+    responses={
+        200: OpenApiResponse(description="Google Calendar disconnected successfully."),
+    },
+    description="Disconnect user's Google Calendar by revoking tokens.",
+    tags=["Google Calendar Integration"]
+)
 class GoogleCalendarDisconnect(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
