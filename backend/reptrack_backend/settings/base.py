@@ -55,6 +55,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'reptrack_backend.middleware.BlockSuspiciousParamsMiddleware',
+    'reptrack_backend.middleware.APIDocsCSPMiddleware',
     'reptrack_backend.middleware.CacheControlMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

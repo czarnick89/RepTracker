@@ -3,6 +3,33 @@ from django.http import HttpResponseBadRequest
 import re
 
 
+class APIDocsCSPMiddleware(MiddlewareMixin):
+    """
+    Relax Content Security Policy for API documentation endpoints to allow
+    Swagger UI and ReDoc to load their CDN resources.
+    """
+    
+    def process_response(self, request, response):
+        path = request.path or ""
+        
+        # Allow CDN resources for API documentation pages
+        if path.startswith('/api/docs') or path.startswith('/api/redoc') or path.startswith('/api/schema'):
+            # Remove restrictive CSP if present, or set a permissive one
+            if 'Content-Security-Policy' in response:
+                del response['Content-Security-Policy']
+            
+            # Set a permissive CSP that allows Swagger UI CDN resources
+            response['Content-Security-Policy'] = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "img-src 'self' data: https://cdn.jsdelivr.net; "
+                "font-src 'self' data: https://cdn.jsdelivr.net;"
+            )
+        
+        return response
+
+
 class CacheControlMiddleware(MiddlewareMixin):
     """
     Ensure appropriate Cache-Control headers are set for responses.
