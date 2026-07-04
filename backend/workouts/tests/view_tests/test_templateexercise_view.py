@@ -103,6 +103,42 @@ class TestTemplateExerciseViewSet:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not TemplateExercise.objects.filter(id=self.template_exercise.id).exists()
 
+    def test_retrieve_template_exercise_forbidden(self):
+        # A user must not be able to read another user's template exercise.
+        other_user = User.objects.create_user(email="other@example.com", password="pass1234")
+        other_workout = TemplateWorkout.objects.create(
+            user=other_user,
+            template_number=1,
+            name="Other Workout"
+        )
+        other_exercise = TemplateExercise.objects.create(
+            workout_template=other_workout,
+            name="Other Exercise",
+            exercise_number=1
+        )
+        url = reverse('templateexercise-detail', args=[other_exercise.id])
+        response = self.client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_update_template_exercise_forbidden(self):
+        # A user must not be able to modify another user's template exercise.
+        other_user = User.objects.create_user(email="other@example.com", password="pass1234")
+        other_workout = TemplateWorkout.objects.create(
+            user=other_user,
+            template_number=1,
+            name="Other Workout"
+        )
+        other_exercise = TemplateExercise.objects.create(
+            workout_template=other_workout,
+            name="Other Exercise",
+            exercise_number=1
+        )
+        url = reverse('templateexercise-detail', args=[other_exercise.id])
+        response = self.client.patch(url, {"name": "Hacked"})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        other_exercise.refresh_from_db()
+        assert other_exercise.name == "Other Exercise"
+
     def test_delete_template_exercise_forbidden(self):
         # Create exercise owned by other user
         other_user = User.objects.create_user(email="other@example.com", password="pass1234")

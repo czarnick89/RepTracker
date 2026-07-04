@@ -120,6 +120,15 @@ api.interceptors.response.use(
     // Check if the error status is 401 (Unauthorized)
     if (error.response?.status === 401) {
 
+      // Opt-out: some callers (e.g. the AuthContext bootstrap probe on public
+      // pages like /reset-password) only want to know "am I logged in?". For
+      // them a 401 just means "not authenticated" — it must NOT trigger the
+      // refresh + hard redirect flow, which would bounce a legitimately
+      // logged-out visitor away from a public page. Let the caller handle it.
+      if (originalRequest.skipAuthRedirect) {
+        return Promise.reject(error);
+      }
+
       // If we've already retried this request, logout user
       if (originalRequest._retry) {
         interceptorLogout(); // Clear auth and redirect to logout
