@@ -222,8 +222,11 @@ class TemplateExerciseViewSet(viewsets.ModelViewSet):
         return TemplateExercise.objects.filter(workout_template__user=self.request.user)
 
     def get_object(self):
-        # For detail views like delete/update, fetch the object ignoring user filtering
+        # Fetch by pk, then enforce ownership so a user cannot retrieve/update/
+        # delete another user's template exercise (broken object-level auth).
         obj = get_object_or_404(TemplateExercise.objects.all(), pk=self.kwargs['pk'])
+        if obj.workout_template.user != self.request.user:
+            raise PermissionDenied("You do not have permission to access this exercise.")
         return obj
 
     def perform_create(self, serializer):

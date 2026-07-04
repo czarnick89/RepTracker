@@ -18,6 +18,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.settings import api_settings as jwt_settings
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 
@@ -34,6 +35,11 @@ from . import schema_extensions  # Import to register the auth extension
 # Model reference
 # ---------------------------
 User = get_user_model()
+
+# Keep the auth cookie lifetimes in sync with the JWT token lifetimes so a
+# cookie never expires (logging the user out) while its token is still valid.
+ACCESS_COOKIE_MAX_AGE = int(jwt_settings.ACCESS_TOKEN_LIFETIME.total_seconds())
+REFRESH_COOKIE_MAX_AGE = int(jwt_settings.REFRESH_TOKEN_LIFETIME.total_seconds())
 
 # ===========================
 # User Registration and Email Verification
@@ -141,9 +147,9 @@ class MyTokenObtainPairView(TokenObtainPairView):
             key='access_token',
             value=access,
             httponly=True,
-            secure=True,    
-            samesite='None',    
-            max_age=15 * 60,
+            secure=True,
+            samesite='None',
+            max_age=ACCESS_COOKIE_MAX_AGE,
             path='/',
         )
 
@@ -151,9 +157,9 @@ class MyTokenObtainPairView(TokenObtainPairView):
             key='refresh_token',
             value=refresh,
             httponly=True,
-            secure=True,       
-            samesite='None',   
-            max_age=24 * 60 * 60,
+            secure=True,
+            samesite='None',
+            max_age=REFRESH_COOKIE_MAX_AGE,
             path='/api/v1/users/',
         )
 
@@ -215,9 +221,9 @@ class CookieTokenRefreshView(TokenRefreshView):
             key='access_token',
             value=access_token,
             httponly=True,
-            secure=True,  
-            samesite='None',  
-            max_age=15 * 60,  # 15 minutes
+            secure=True,
+            samesite='None',
+            max_age=ACCESS_COOKIE_MAX_AGE,
             path='/',
         )
 
@@ -227,9 +233,9 @@ class CookieTokenRefreshView(TokenRefreshView):
                 key='refresh_token',
                 value=new_refresh_token,
                 httponly=True,
-                secure=True,  
+                secure=True,
                 samesite='None',
-                max_age=24 * 60 * 60,  # 1 day
+                max_age=REFRESH_COOKIE_MAX_AGE,
                 path='/api/v1/users/',
             )
 

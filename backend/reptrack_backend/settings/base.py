@@ -2,6 +2,7 @@ from pathlib import Path
 from datetime import timedelta
 from corsheaders.defaults import default_headers
 import os
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -10,8 +11,18 @@ load_dotenv()
 # ===============================
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-SECRET_KEY = os.environ.get('SECRET_KEY', 'replace-me-with-a-secure-key')
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+
+# Never fall back to a hard-coded SECRET_KEY in production. A missing key is
+# only tolerated (with an obviously-insecure dev value) when DEBUG is on.
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'insecure-dev-key-do-not-use-in-production'
+    else:
+        raise ImproperlyConfigured(
+            "SECRET_KEY environment variable must be set when DEBUG is False."
+        )
 
 # ===============================
 # URLs & Hosts

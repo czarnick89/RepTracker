@@ -38,6 +38,11 @@ export const AuthProvider = ({ children }) => {
         // and we avoid calling the refresh endpoint unnecessarily.
         const res = await api.get("/api/v1/users/profile/", {
           headers: { "Cache-Control": "no-cache" },
+          // This is a bootstrap "am I logged in?" probe. A 401 here just means
+          // "not authenticated" — don't let the interceptor force a redirect to
+          // /login (that would bounce visitors off public pages like the
+          // password-reset page). We handle the unauthenticated case below.
+          skipAuthRedirect: true,
         });
 
         if (isMounted) {
@@ -57,6 +62,7 @@ export const AuthProvider = ({ children }) => {
             // After successful refresh, fetch profile again
             const res2 = await api.get("/api/v1/users/profile/", {
               headers: { "Cache-Control": "no-cache" },
+              skipAuthRedirect: true,
             });
             if (isMounted) setUser(res2.data);
             try {
